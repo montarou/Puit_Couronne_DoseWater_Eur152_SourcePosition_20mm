@@ -9,16 +9,15 @@ class G4VPhysicalVolume;
 class G4LogicalVolume;
 class G4Material;
 
-/// @brief Construction du détecteur "puits couronne"
+/// @brief Construction du détecteur - CONFIGURATION OPTIMISÉE
 ///
-/// Géométrie :
-/// - Source Eu-152 à z = 2 cm (dans PrimaryGeneratorAction)
-/// - Filtre cylindrique W/PETG à z = 4 cm
-/// - Container cylindrique W/PETG ouvert à z = 10 cm
-/// - Tranche PMMA (5 mm) avant l'eau
-/// - Anneaux d'eau concentriques à l'intérieur du container
-/// - Feuille de tungstène (20 µm) après l'eau
-
+/// Géométrie (dans le sens des z croissants) :
+/// - Source Eu-152 à z = 75 mm (25 mm avant surface eau)
+/// - PreContainer Plane (AIR, 1 mm, r=25mm) : z = 99-100 mm (AVANT surface eau)
+/// - Première tranche d'eau (2 mm) : z = 100-102 mm
+/// - Deuxième tranche d'eau (1 mm) : z = 102-103 mm (anneaux concentriques)
+/// - PostContainer = Polystyrène (1 mm) : z = 103-104 mm (fond boîte de Petri)
+/// - Feuille de tungstène (50 µm) : z = 104-104.05 mm (rétrodiffusion)
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -35,10 +34,10 @@ public:
     /// Nombre d'anneaux d'eau (incluant le disque central)
     static const G4int kNbWaterRings = 5;
     
-    // Retourne le nom du volume logique pour l'anneau i
+    /// Retourne le nom du volume logique pour l'anneau i
     static G4String GetWaterRingName(G4int ringIndex);
 
-    // Retourne le rayon interne de l'anneau i (mm)
+    /// Retourne le rayon interne de l'anneau i (mm)
     static G4double GetRingInnerRadius(G4int ringIndex);
 
     /// Retourne le rayon externe de l'anneau i (mm)
@@ -52,41 +51,32 @@ private:
     // ═══════════════════════════════════════════════════════════════
     // MATÉRIAUX
     // ═══════════════════════════════════════════════════════════════
-    G4Material* fPETG;
     G4Material* fTungsten;
-    G4Material* fW_PETG;
     G4Material* fWater;
-    G4Material* fPMMA;
+    G4Material* fPolystyrene;
 
     // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DU FILTRE
+    // PARAMÈTRES GÉOMÉTRIQUES GÉNÉRAUX
     // ═══════════════════════════════════════════════════════════════
-    G4double fFilterRadius;
-    G4double fFilterThickness;
-    G4double fFilterPosZ;
+    G4double fContainerRadius;          // Rayon : 25 mm (2.5 cm)
+    G4double fPolystyreneThickness;     // Épaisseur paroi PS : 1 mm
 
     // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DU CONTAINER
+    // PARAMÈTRES DES TRANCHES D'EAU
     // ═══════════════════════════════════════════════════════════════
-    G4double fContainerInnerRadius;
-    G4double fContainerInnerHeight;
-    G4double fContainerWallThickness;
-    G4double fContainerPosZ;
-
-    // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DES ANNEAUX D'EAU
-    // ═══════════════════════════════════════════════════════════════
-    G4double fWaterThickness;
-    G4double fRingWidth;
+    G4double fWaterThickness1;          // Première tranche : 2 mm (volume uniforme)
+    G4double fWaterThickness2;          // Deuxième tranche : 1 mm (anneaux concentriques)
+    G4double fRingWidth;                // Largeur des anneaux : 5 mm
     
     // Masses des anneaux (calculées dans Construct())
     std::vector<G4double> fRingMasses;
 
     // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DES PLANS DE COMPTAGE
+    // PARAMÈTRES DU PRECONTAINER PLANE
+    // AIR, AVANT la surface de l'eau
     // ═══════════════════════════════════════════════════════════════
-    G4double fCountingPlaneThickness;
-    G4double fCountingPlaneGap;
+    G4double fPreContainerPlaneThickness;  // Épaisseur : 1 mm
+    G4double fPreContainerPlaneRadius;     // Rayon : 25 mm (2.5 cm)
 
     // ═══════════════════════════════════════════════════════════════
     // VOLUMES LOGIQUES DES ANNEAUX (pour identification dans SteppingAction)
@@ -94,16 +84,15 @@ private:
     std::vector<G4LogicalVolume*> fWaterRingLogicals;
 
     // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DE LA TRANCHE PMMA (NOUVEAU)
+    // PARAMÈTRES DE LA FEUILLE DE TUNGSTÈNE
     // ═══════════════════════════════════════════════════════════════
-    G4double fPMMAThickness;         // Épaisseur PMMA (5 mm)
-    G4double fPMMARadius;            // Rayon PMMA (25 mm)
+    G4double fTungstenFoilThickness;    // Épaisseur feuille W : 50 µm
+    G4double fTungstenFoilRadius;       // Rayon feuille W : 25 mm
 
     // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DE LA FEUILLE DE TUNGSTÈNE (NOUVEAU)
+    // PARAMÈTRES DE POSITIONNEMENT
     // ═══════════════════════════════════════════════════════════════
-    G4double fTungstenFoilThickness; // Épaisseur feuille W (20 µm)
-    G4double fTungstenFoilRadius;    // Rayon feuille W (25 mm)
+    G4double fSourceToWaterDistance;    // Distance source-eau : 25 mm
 
 };
 

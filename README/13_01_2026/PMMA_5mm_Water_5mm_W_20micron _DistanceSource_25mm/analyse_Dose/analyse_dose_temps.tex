@@ -1,0 +1,319 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{diagbox}
+
+\geometry{margin=2.5cm}
+
+\sisetup{
+    scientific-notation = true,
+    round-mode = figures,
+    round-precision = 3,
+    exponent-product = \times
+}
+
+\title{\textbf{Analyse dosimétrique par anneau}\\[0.5cm]
+\large Simulation Monte Carlo Geant4 -- Source Eu-152 (42 kBq)\\
+Configuration sans filtre -- 25 millions d'événements}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================================
+\section{Paramètres de la simulation}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur} \\
+\midrule
+Nombre d'événements simulés & \num{25000000} \\
+Gammas primaires générés & \num{50701352} \\
+Gammas entrant dans l'eau & \num{48288275} \\
+Gammas absorbés dans l'eau & \num{353724} \\
+Électrons secondaires dans l'eau & \num{238852} \\
+Énergie totale déposée dans l'eau & \SI{328.47}{\mega\eV} \\
+Activité de la source (supposée) & \SI{42}{\kilo\becquerel} \\
+Configuration & Sans filtre W/PETG \\
+\bottomrule
+\end{tabular}
+\caption{Paramètres et statistiques de la simulation.}
+\end{table}
+
+% ============================================================================
+\section{Géométrie des anneaux d'eau}
+% ============================================================================
+
+Le volume d'eau est segmenté en 5 anneaux concentriques de 5 mm de largeur chacun. Les caractéristiques géométriques sont :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Anneau} & \textbf{$r_{int}$ (mm)} & \textbf{$r_{ext}$ (mm)} & \textbf{Volume (cm$^3$)} & \textbf{Masse (g)} \\
+\midrule
+0 & 0 & 5 & 0.3927 & 0.3927 \\
+1 & 5 & 10 & 1.1781 & 1.1781 \\
+2 & 10 & 15 & 1.9635 & 1.9635 \\
+3 & 15 & 20 & 2.7489 & 2.7489 \\
+4 & 20 & 25 & 3.5343 & 3.5343 \\
+\midrule
+\textbf{Total} & 0 & 25 & 9.8175 & 9.8175 \\
+\bottomrule
+\end{tabular}
+\caption{Caractéristiques géométriques des anneaux d'eau (épaisseur 5 mm, $\rho = 1$ g/cm$^3$).}
+\end{table}
+
+Le volume de chaque anneau est calculé par :
+\begin{equation}
+V_i = \pi \left( r_{ext,i}^2 - r_{int,i}^2 \right) \times h
+\end{equation}
+où $h = 5$ mm est l'épaisseur de la couche d'eau.
+
+% ============================================================================
+\section{Analyse des doses déposées par anneau}
+% ============================================================================
+
+\subsection{Résultats de la simulation}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Anneau} & \textbf{Rayon (mm)} & \textbf{Masse (g)} & \textbf{Énergie (MeV)} & \textbf{Dose (nGy/evt)} & \textbf{Dose relative} \\
+\midrule
+\rowcolor{yellow!30} 0 & 0 -- 5 & 0.3927 & \num{1.776e4} & \num{2.899e-4} & 1.000 \\
+1 & 5 -- 10 & 1.1781 & \num{4.946e4} & \num{2.690e-4} & 0.928 \\
+2 & 10 -- 15 & 1.9635 & \num{7.343e4} & \num{2.397e-4} & 0.827 \\
+3 & 15 -- 20 & 2.7489 & \num{8.780e4} & \num{2.047e-4} & 0.706 \\
+4 & 20 -- 25 & 3.5343 & \num{1.000e5} & \num{1.814e-4} & 0.626 \\
+\bottomrule
+\end{tabular}
+\caption{Énergie déposée et dose par anneau. L'anneau 0 (central) est surligné.}
+\label{tab:dose_anneau}
+\end{table}
+
+\subsection{Interprétation physique}
+
+\subsubsection{Gradient radial de dose}
+
+On observe une décroissance monotone de la dose avec le rayon :
+\begin{itemize}
+    \item \textbf{Anneau central (0)} : $D_0 = \SI{2.899e-4}{\nano\gray/event}$ (dose maximale)
+    \item \textbf{Anneau externe (4)} : $D_4 = \SI{1.814e-4}{\nano\gray/event}$ (dose minimale)
+    \item \textbf{Rapport} : $D_4/D_0 = 0.626$ soit une réduction de 37.4\%
+\end{itemize}
+
+Ce gradient s'explique par :
+\begin{enumerate}
+    \item La \textbf{divergence géométrique} du faisceau depuis la source ponctuelle
+    \item L'\textbf{atténuation radiale} des photons diffusés
+    \item Le \textbf{parcours limité} des électrons secondaires ($\sim$ quelques mm dans l'eau)
+\end{enumerate}
+
+\subsubsection{Énergie déposée vs. masse}
+
+Bien que l'énergie totale déposée augmente avec le rayon (car la surface augmente), la dose \textit{par unité de masse} diminue :
+
+\begin{equation}
+D_i = \frac{E_i}{m_i} \quad \text{avec} \quad m_i \propto \left( r_{ext,i}^2 - r_{int,i}^2 \right)
+\end{equation}
+
+L'anneau 4 reçoit la plus grande énergie totale (\SI{1.0e5}{\mega\eV}) mais a la dose la plus faible car sa masse est la plus grande (\SI{3.53}{\gram}).
+
+% ============================================================================
+\section{Calcul des temps d'irradiation}
+% ============================================================================
+
+\subsection{Méthodologie}
+
+Pour une source d'activité $A$ (en Bq), le débit de dose dans l'anneau $i$ est :
+\begin{equation}
+\dot{D}_i = D_i \times A
+\end{equation}
+où $D_i$ est la dose par événement (nGy/evt) et $A$ représente le nombre de désintégrations par seconde.
+
+Le temps nécessaire pour atteindre une dose cible $D_{cible}$ est :
+\begin{equation}
+t = \frac{D_{cible}}{\dot{D}_i} = \frac{D_{cible}}{D_i \times A}
+\end{equation}
+
+\subsection{Application à l'anneau central (Anneau 0)}
+
+Pour l'anneau central avec une source Eu-152 de \SI{42}{\kilo\becquerel} :
+
+\begin{align}
+D_0 &= \SI{2.899e-4}{\nano\gray/event} = \SI{2.899e-13}{\gray/event} \\
+A &= \SI{42000}{\becquerel} = \SI{42000}{event/\second} \\
+\dot{D}_0 &= \SI{2.899e-13}{\gray/event} \times \SI{42000}{event/\second} \\
+\dot{D}_0 &= \SI{1.218e-8}{\gray/\second} = \SI{1.218e-6}{c\gray/\second}
+\end{align}
+
+En unités plus pratiques :
+\begin{equation}
+\boxed{\dot{D}_0 = \SI{1.052}{m\gray/jour} = \SI{0.1052}{c\gray/jour}}
+\end{equation}
+
+\subsection{Temps pour atteindre les doses cibles}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Dose cible} & \textbf{Dose (Gy)} & \textbf{Temps (s)} & \textbf{Temps (jours)} & \textbf{Temps (mois)} \\
+\midrule
+\rowcolor{green!20} \SI{10}{c\gray} & 0.1 & \num{8.21e6} & \textbf{95.0} & 3.17 \\
+\rowcolor{orange!20} \SI{20}{c\gray} & 0.2 & \num{1.64e7} & \textbf{190.1} & 6.34 \\
+\rowcolor{red!20} \SI{50}{c\gray} & 0.5 & \num{4.11e7} & \textbf{475.2} & 15.8 \\
+\bottomrule
+\end{tabular}
+\caption{Temps d'irradiation pour atteindre les doses cibles dans l'anneau central (source Eu-152, \SI{42}{\kilo\becquerel}).}
+\label{tab:temps_irradiation}
+\end{table}
+
+\subsection{Formules de calcul détaillées}
+
+Pour \textbf{10 cGy} :
+\begin{equation}
+t_{10} = \frac{\SI{0.1}{\gray}}{\SI{1.218e-8}{\gray/\second}} = \SI{8.21e6}{\second} = \SI{95.0}{jours} \approx \textbf{3.2 mois}
+\end{equation}
+
+Pour \textbf{20 cGy} :
+\begin{equation}
+t_{20} = \frac{\SI{0.2}{\gray}}{\SI{1.218e-8}{\gray/\second}} = \SI{1.64e7}{\second} = \SI{190.1}{jours} \approx \textbf{6.3 mois}
+\end{equation}
+
+Pour \textbf{50 cGy} :
+\begin{equation}
+t_{50} = \frac{\SI{0.5}{\gray}}{\SI{1.218e-8}{\gray/\second}} = \SI{4.11e7}{\second} = \SI{475.2}{jours} \approx \textbf{1.3 ans}
+\end{equation}
+
+% ============================================================================
+\section{Analyse comparative entre anneaux}
+% ============================================================================
+
+\subsection{Débits de dose par anneau}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Anneau} & \textbf{Dose (nGy/evt)} & \textbf{Débit (nGy/s)} & \textbf{Débit (mGy/jour)} & \textbf{Temps pour 10 cGy (jours)} \\
+\midrule
+\rowcolor{yellow!30} 0 & \num{2.899e-4} & 12.18 & 1.052 & \textbf{95.0} \\
+1 & \num{2.690e-4} & 11.30 & 0.976 & 102.4 \\
+2 & \num{2.397e-4} & 10.07 & 0.870 & 114.9 \\
+3 & \num{2.047e-4} & 8.60 & 0.743 & 134.6 \\
+4 & \num{1.814e-4} & 7.62 & 0.658 & 151.9 \\
+\bottomrule
+\end{tabular}
+\caption{Débits de dose et temps d'irradiation pour chaque anneau (source \SI{42}{\kilo\becquerel}).}
+\end{table}
+
+\subsection{Uniformité de dose}
+
+Le rapport entre la dose maximale (anneau 0) et minimale (anneau 4) est :
+\begin{equation}
+\frac{D_{max}}{D_{min}} = \frac{D_0}{D_4} = \frac{2.899}{1.814} = 1.60
+\end{equation}
+
+Cette non-uniformité de 60\% est significative et doit être prise en compte pour les applications dosimétriques nécessitant une irradiation homogène.
+
+% ============================================================================
+\section{Taux d'absorption par raie gamma}
+% ============================================================================
+
+L'analyse par raie gamma montre que l'absorption est dominée par les raies X de basse énergie :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Raie} & \textbf{Énergie (keV)} & \textbf{Émis} & \textbf{Entré eau} & \textbf{Absorbé} & \textbf{Taux (\%)} \\
+\midrule
+\rowcolor{blue!15} 0 & 39.5 (X) & \num{5201331} & \num{4693419} & \num{127786} & \textbf{2.72} \\
+\rowcolor{blue!15} 1 & 40.1 (X) & \num{9423209} & \num{8517840} & \num{220098} & \textbf{2.58} \\
+2 & 121.8 & \num{7101317} & \num{6740725} & \num{5097} & 0.08 \\
+3 & 244.7 & \num{1882686} & \num{1811268} & \num{209} & 0.01 \\
+4 & 344.3 & \num{6650954} & \num{6439917} & \num{254} & $<$0.01 \\
+\bottomrule
+\end{tabular}
+\caption{Taux d'absorption dans l'eau par raie gamma (5 premières raies). Les raies X sont surlignées.}
+\end{table}
+
+\textbf{Observation clé} : Les raies X à $\sim$40 keV contribuent à plus de 98\% des absorptions dans l'eau, avec un taux d'absorption d'environ 2.7\%.
+
+% ============================================================================
+\section{Synthèse et conclusions}
+% ============================================================================
+
+\subsection{Résultats principaux}
+
+\begin{enumerate}
+    \item \textbf{Dose dans l'anneau central} : $D_0 = \SI{2.899e-4}{\nano\gray}$ par désintégration
+    
+    \item \textbf{Débit de dose} (source \SI{42}{\kilo\becquerel}) : $\dot{D}_0 = \SI{1.05}{m\gray/jour}$
+    
+    \item \textbf{Temps d'irradiation} pour l'anneau central :
+    \begin{itemize}
+        \item 10 cGy : \textbf{95 jours} ($\sim$ 3.2 mois)
+        \item 20 cGy : \textbf{190 jours} ($\sim$ 6.3 mois)  
+        \item 50 cGy : \textbf{475 jours} ($\sim$ 1.3 ans)
+    \end{itemize}
+    
+    \item \textbf{Gradient radial} : Réduction de 37\% de la dose entre le centre et la périphérie
+\end{enumerate}
+
+\subsection{Implications pratiques}
+
+\begin{itemize}
+    \item Les temps d'irradiation sont très longs en raison de la faible activité de la source (\SI{42}{\kilo\becquerel})
+    \item Pour réduire les temps d'un facteur 10, il faudrait une source de \SI{420}{\kilo\becquerel}
+    \item L'absorption est dominée par les raies X de basse énergie ($\sim$40 keV)
+    \item Le gradient radial de dose nécessite une calibration spécifique pour chaque anneau
+\end{itemize}
+
+\subsection{Formule générale}
+
+Pour une activité $A$ quelconque (en kBq), le temps d'irradiation pour atteindre une dose $D$ (en cGy) dans l'anneau central est :
+\begin{equation}
+\boxed{t \text{ (jours)} = \frac{D \text{ (cGy)}}{0.1052} \times \frac{42}{A \text{ (kBq)}} = \frac{399.2 \times D}{A}}
+\end{equation}
+
+\vspace{1cm}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{c|ccc}
+\toprule
+\diagbox{\textbf{Activité}}{\textbf{Dose}} & \textbf{10 cGy} & \textbf{20 cGy} & \textbf{50 cGy} \\
+\midrule
+\SI{42}{\kilo\becquerel} & 95 jours & 190 jours & 475 jours \\
+\SI{100}{\kilo\becquerel} & 40 jours & 80 jours & 200 jours \\
+\SI{420}{\kilo\becquerel} & 9.5 jours & 19 jours & 47.5 jours \\
+\SI{1}{\mega\becquerel} & 4 jours & 8 jours & 20 jours \\
+\bottomrule
+\end{tabular}
+\caption{Temps d'irradiation en fonction de l'activité de la source pour différentes doses cibles.}
+\end{table}
+
+\end{document}

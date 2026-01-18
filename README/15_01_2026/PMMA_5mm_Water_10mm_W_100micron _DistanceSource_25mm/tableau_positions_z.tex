@@ -1,0 +1,95 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{geometry}
+\geometry{margin=2cm}
+
+\begin{document}
+
+\begin{center}
+\textbf{\Large Positions axiales (z) des volumes du container}
+\end{center}
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{Paramètres de référence :}
+\begin{itemize}
+    \item Position Z du centre du container : $z_{\text{container}} = 100$ mm
+    \item Hauteur intérieure du container : 12 mm
+    \item Épaisseur des parois W/PETG : 2 mm
+\end{itemize}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Volume} & \textbf{Matériau} & \textbf{$z_{\min}$ (mm)} & \textbf{$z_{\max}$ (mm)} & \textbf{Épaisseur (mm)} \\
+\midrule
+PMMA (build-up)         & PMMA    & 90.9   & 95.9   & 5.0 \\
+\midrule
+PreContainerPlane       & Eau     & 95.9   & 97.9   & 2.0 \\
+\midrule
+Eau 1 (uniforme)        & Eau     & 95.9   & 104.9  & 9.0 \\
+\midrule
+Eau 2 / PostContainer   & Eau     & 104.9  & 105.9  & 1.0 \\
+(anneaux concentriques) &         &        &        &     \\
+\midrule
+Feuille de tungstène    & W       & 105.9  & 106.0  & 0.1 \\
+\midrule
+Fond du container       & W/PETG  & 106.0  & 108.0  & 2.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\noindent
+\textbf{Remarques :}
+\begin{itemize}
+    \item Le PreContainerPlane (2 mm) chevauche le début de Eau 1 (mêmes $z_{\min}$).
+    \item Les parois latérales du container (W/PETG, 2 mm d'épaisseur radiale) s'étendent de $z = 94.0$ mm à $z = 106.0$ mm.
+    \item Le rayon intérieur du container est de 25 mm.
+    \item Les 5 anneaux concentriques dans Eau 2 ont des rayons : 0--5, 5--10, 10--15, 15--20, 20--25 mm.
+\end{itemize}
+
+\vspace{1cm}
+
+\begin{center}
+\textbf{Schéma de l'empilement (sens des z croissants $\uparrow$)}
+\end{center}
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+$z = 108.0$ mm & \textit{Haut du fond container} \\
+\hline
+\multicolumn{2}{|c|}{Fond W/PETG (2 mm)} \\
+\hline
+$z = 106.0$ mm & \textit{Bas du fond / Haut feuille W} \\
+\hline
+\multicolumn{2}{|c|}{Feuille W (100 µm)} \\
+\hline
+$z = 105.9$ mm & \textit{Bas feuille W / Haut Eau 2} \\
+\hline
+\multicolumn{2}{|c|}{Eau 2 - PostContainer (1 mm) - Anneaux} \\
+\hline
+$z = 104.9$ mm & \textit{Bas Eau 2 / Haut Eau 1} \\
+\hline
+\multicolumn{2}{|c|}{Eau 1 (9 mm) - Volume uniforme} \\
+\hline
+$z = 95.9$ mm & \textit{Bas Eau 1 / Haut PMMA} \\
+\hline
+\multicolumn{2}{|c|}{PMMA (5 mm)} \\
+\hline
+$z = 90.9$ mm & \textit{Bas PMMA} \\
+\hline
+\end{tabular}
+\end{center}
+
+\end{document}

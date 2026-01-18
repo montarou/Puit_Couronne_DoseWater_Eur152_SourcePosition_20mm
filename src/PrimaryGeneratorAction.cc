@@ -12,8 +12,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 : G4VUserPrimaryGeneratorAction(),
   fParticleGun(nullptr),
   fLastEventGammaCount(0),
-  fConeAngle(20.*deg),
-  fSourcePosition(0., 0., 2.*cm)
+  fConeAngle(45.*deg),
+  fSourcePosition(0., 0., 75.0*mm)  // Source à z = 75 mm (25 mm avant surface eau à z=100 mm)
 {
     // Créer le particle gun
     fParticleGun = new G4ParticleGun(1);
@@ -30,8 +30,10 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     // Source: NNDC/ENSDF - principales raies gamma
     // Énergies en keV, intensités en % par désintégration
     
-    // Raies principales (intensité > 2%)
+    // Raies principales (intensité > 2%) + raies X
     fGammaEnergies = {
+        39.52,    // Intensité: 20.8% (raie X)
+        40.12,    // Intensité: 37.7% (raie X)
         121.78,   // Intensité: 28.41%
         244.70,   // Intensité: 7.53%
         344.28,   // Intensité: 26.59%
@@ -46,6 +48,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     };
     
     fGammaIntensities = {
+        20.8,
+        37.7,
         28.41,
         7.53,
         26.59,
@@ -80,6 +84,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     G4cout << "║  Intensité totale: " << totalIntensity << "%                                   ║" << G4endl;
     G4cout << "║  Gammas moyens/désintégration: ~" << totalIntensity/100. << "                         ║" << G4endl;
     G4cout << "║  Angle du cône: " << fConeAngle/deg << " degrés                                    ║" << G4endl;
+    G4cout << "║  *** POSITION SOURCE: z = " << fSourcePosition.z()/mm << " mm (25 mm avant eau) ***  ║" << G4endl;
     G4cout << "╚═══════════════════════════════════════════════════════════════╝\n" << G4endl;
 }
 

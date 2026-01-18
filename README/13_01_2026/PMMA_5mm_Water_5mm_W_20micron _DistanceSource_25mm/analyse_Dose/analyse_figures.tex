@@ -1,0 +1,394 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{float}
+
+\geometry{margin=2.5cm}
+
+\title{\textbf{Analyse des résultats de simulation Monte Carlo Geant4}\\[0.5cm]
+\large Dispositif ``Puits Couronne'' -- Source Eu-152 -- Configuration sans filtre}
+\author{Script d'analyse : \texttt{analyse\_Dose\_v2.C}}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Introduction}
+% ============================================================================
+
+Ce document présente l'analyse des résultats obtenus par simulation Monte Carlo avec le code Geant4. Le script ROOT \texttt{analyse\_Dose\_v2.C} génère sept figures permettant de caractériser le dépôt d'énergie et la dosimétrie dans un dispositif de type ``puits couronne'' irradié par une source d'Europium-152.
+
+\subsection{Configuration simulée}
+
+\begin{itemize}
+    \item \textbf{Source} : Eu-152 (activité 42 kBq)
+    \item \textbf{Géométrie} : Configuration sans filtre W/PETG
+    \item \textbf{Milieu de mesure} : Eau segmentée en 5 anneaux concentriques
+    \item \textbf{Anneaux} : rayons 0--5, 5--10, 10--15, 15--20, 20--25 mm
+\end{itemize}
+
+% ============================================================================
+\section{Figure 1 : Spectre gamma Eu-152 émis}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente le spectre en énergie des photons gamma émis par la source d'Europium-152 simulée. L'histogramme affiche le nombre de photons (échelle logarithmique) en fonction de leur énergie en keV.
+
+\subsection{Contenu observé}
+
+Le spectre montre les raies caractéristiques de l'Eu-152, qui est un émetteur gamma complexe avec de nombreuses transitions. Les principales raies identifiées sont :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cc}
+\toprule
+\textbf{Énergie (keV)} & \textbf{Transition} \\
+\midrule
+40 & Raies X (K$\alpha$, K$\beta$) \\
+122 & $\gamma$ \\
+245 & $\gamma$ \\
+344 & $\gamma$ (la plus intense) \\
+779 & $\gamma$ \\
+964 & $\gamma$ \\
+1112 & $\gamma$ \\
+1408 & $\gamma$ \\
+\bottomrule
+\end{tabular}
+\caption{Principales raies gamma de l'Eu-152 observées dans le spectre émis.}
+\end{table}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item Le nombre total de photons émis est d'environ $5.07 \times 10^7$ (Entries).
+    \item La raie la plus intense est celle à 344 keV, suivie de la raie à 1408 keV.
+    \item Les raies X à 40 keV sont également très intenses, ce qui est caractéristique de la désexcitation par capture électronique de l'Eu-152.
+    \item Ce spectre sert de référence pour calculer les taux de transmission et d'absorption dans les différents volumes de la géométrie.
+\end{itemize}
+
+% ============================================================================
+\section{Figure 2 : Spectre gamma entrant dans l'eau}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure montre le spectre en énergie des photons gamma qui pénètrent effectivement dans le volume d'eau (après traversée du PMMA). Elle permet de quantifier l'atténuation et la modification du spectre entre la source et le milieu de mesure.
+
+\subsection{Contenu observé}
+
+Le spectre présente les mêmes raies que le spectre émis, mais avec des intensités modifiées :
+
+\begin{itemize}
+    \item Environ $4.83 \times 10^7$ photons entrent dans l'eau (Entries).
+    \item Les raies de basse énergie (40 keV, 122 keV) sont significativement atténuées.
+    \item Un continuum Compton apparaît entre les raies discrètes.
+    \item Les raies de haute énergie ($>$ 300 keV) sont relativement préservées.
+\end{itemize}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item Le taux de transmission global source $\rightarrow$ eau est d'environ 95\%, ce qui est cohérent avec l'absence de filtre W/PETG.
+    \item L'atténuation est principalement due à :
+    \begin{enumerate}
+        \item La géométrie (angle solide limité)
+        \item L'absorption dans le PMMA (5 mm)
+        \item Les diffusions Compton créant le continuum
+    \end{enumerate}
+    \item Les discontinuités visibles dans le spectre correspondent aux seuils d'absorption des matériaux traversés.
+\end{itemize}
+
+% ============================================================================
+\section{Figure 3 : Distribution de dose par anneau}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente six panneaux montrant la distribution de la dose absorbée (en nGy par événement) pour chacun des 5 anneaux concentriques et pour le total. Les distributions sont présentées en échelle logarithmique.
+
+\subsection{Contenu observé}
+
+Pour chaque anneau, on observe une distribution caractéristique :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccc}
+\toprule
+\textbf{Anneau} & \textbf{Rayon (mm)} & \textbf{Entries} & \textbf{Dose max (nGy)} \\
+\midrule
+0 & 0--5 & 71 227 & $\sim$ 2 \\
+1 & 5--10 & 74 959 & $\sim$ 1 \\
+2 & 10--15 & 98 230 & $\sim$ 0.5 \\
+3 & 15--20 & 25 645 & $\sim$ 0.3 \\
+4 & 20--25 & 84 847 & $\sim$ 0.2 \\
+\midrule
+Total & 0--25 & 785 768 & $\sim$ 1 \\
+\bottomrule
+\end{tabular}
+\caption{Statistiques des distributions de dose par anneau.}
+\end{table}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item \textbf{Gradient radial} : La dose maximale déposée par événement diminue avec le rayon. L'anneau central (0--5 mm) reçoit la dose la plus élevée ($\sim$ 2 nGy), tandis que l'anneau externe (20--25 mm) reçoit une dose maximale d'environ 0.2 nGy.
+    
+    \item \textbf{Forme des distributions} : Toutes les distributions présentent une décroissance quasi-exponentielle, caractéristique des processus stochastiques de dépôt d'énergie. La majorité des événements déposent une dose faible, avec une queue vers les hautes doses correspondant aux événements avec forte interaction.
+    
+    \item \textbf{Nombre d'événements} : Le nombre d'entrées varie selon les anneaux, reflétant à la fois la surface de chaque anneau et la probabilité d'interaction. L'anneau 2 (10--15 mm) présente le plus grand nombre d'événements, ce qui est cohérent avec sa surface intermédiaire et la distribution spatiale du faisceau.
+    
+    \item \textbf{Interprétation physique} : Le gradient radial observé est dû à :
+    \begin{enumerate}
+        \item La divergence géométrique du faisceau depuis la source ponctuelle
+        \item L'atténuation radiale dans l'eau
+        \item La contribution des électrons secondaires qui ont un parcours limité
+    \end{enumerate}
+\end{itemize}
+
+% ============================================================================
+\section{Figure 4 : Énergie déposée par step}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente les spectres d'énergie déposée par ``step'' de simulation (pas de tracking Geant4) pour chaque anneau et pour le total dans l'eau. L'énergie est exprimée en keV.
+
+\subsection{Contenu observé}
+
+Les spectres montrent :
+
+\begin{itemize}
+    \item Une distribution continue de 0 à environ 200 keV pour les anneaux individuels
+    \item Un spectre total s'étendant jusqu'à 500 keV
+    \item Un maximum autour de 10--20 keV
+    \item Une décroissance exponentielle aux hautes énergies
+    \item Environ $2.84 \times 10^7$ entrées au total
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccc}
+\toprule
+\textbf{Anneau} & \textbf{Entries} & \textbf{Énergie moyenne (keV)} \\
+\midrule
+0 & 1 516 445 & $\sim$ 20 \\
+1 & 4 242 918 & $\sim$ 18 \\
+2 & 6 286 911 & $\sim$ 17 \\
+3 & 7 492 715 & $\sim$ 16 \\
+4 & 8 836 375 & $\sim$ 15 \\
+\bottomrule
+\end{tabular}
+\caption{Statistiques des dépôts d'énergie par step.}
+\end{table}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item \textbf{Distribution en énergie} : La forme du spectre est typique des interactions des photons gamma dans l'eau :
+    \begin{itemize}
+        \item Le pic à basse énergie ($<$ 50 keV) correspond principalement aux électrons Auger et aux électrons de faible énergie produits par effet photoélectrique
+        \item La région intermédiaire (50--150 keV) est dominée par les électrons Compton
+        \item La queue à haute énergie correspond aux électrons Compton de haute énergie
+    \end{itemize}
+    
+    \item \textbf{Variation radiale} : Le nombre de steps augmente avec le rayon (de 1.5M pour l'anneau 0 à 8.8M pour l'anneau 4), ce qui reflète l'augmentation de la surface des anneaux ($S = \pi(r_{ext}^2 - r_{int}^2)$).
+    
+    \item \textbf{Step length} : Le code utilise une limite de step de 0.1 mm dans l'eau (UserLimits), ce qui garantit une bonne résolution spatiale du dépôt d'énergie.
+\end{itemize}
+
+% ============================================================================
+\section{Figure 5 : Spectre des électrons secondaires}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure montre le spectre en énergie (keV) des électrons secondaires créés dans le volume d'eau par les interactions des photons gamma.
+
+\subsection{Contenu observé}
+
+\begin{itemize}
+    \item Environ $2.53 \times 10^7$ électrons secondaires sont créés (Entries)
+    \item Le spectre s'étend de quelques keV à environ 1000 keV
+    \item Distribution en décroissance continue (quasi-linéaire en échelle log)
+    \item Maximum d'émission aux basses énergies ($<$ 100 keV)
+\end{itemize}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item \textbf{Origine des électrons} : Les électrons secondaires sont produits par trois processus principaux :
+    \begin{enumerate}
+        \item \textbf{Effet photoélectrique} : Produit des électrons d'énergie $E_e = E_\gamma - E_{liaison}$. Dominant pour les photons de basse énergie.
+        \item \textbf{Diffusion Compton} : Produit des électrons d'énergie variable selon l'angle de diffusion. Processus dominant dans la gamme 100 keV -- 1 MeV.
+        \item \textbf{Création de paires} : Non significatif ici car $E_\gamma < 1.5$ MeV.
+    \end{enumerate}
+    
+    \item \textbf{Forme du spectre} : La décroissance monotone reflète :
+    \begin{itemize}
+        \item La prépondérance des interactions de faible transfert d'énergie
+        \item La section efficace Compton qui favorise les petits angles de diffusion
+        \item L'abondance des photons de basse énergie dans le spectre incident
+    \end{itemize}
+    
+    \item \textbf{Rôle dosimétrique} : Ces électrons sont responsables du dépôt d'énergie local. Leur parcours dans l'eau (quelques mm pour des électrons de 500 keV) détermine la résolution spatiale du dépôt de dose.
+\end{itemize}
+
+% ============================================================================
+\section{Figure 6 : Taux d'absorption par raie gamma}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente un histogramme en barres du taux d'absorption (en \%) dans l'eau pour chaque raie gamma de l'Eu-152. L'axe Y est en échelle logarithmique.
+
+\subsection{Contenu observé}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cc}
+\toprule
+\textbf{Raie gamma} & \textbf{Taux d'absorption (\%)} \\
+\midrule
+40 keV (X) & $\sim$ 2.7 \\
+122 keV & $\sim$ 0.08 \\
+245 keV & $\sim$ 0.01 \\
+344 keV & $\sim$ 0.003 \\
+411 keV & $\sim$ 0.003 \\
+444 keV & $\sim$ 0.002 \\
+779 keV & $\sim$ 0.001 \\
+964 keV & $<$ 0.001 \\
+1112 keV & $\sim$ 0.002 \\
+1408 keV & $\sim$ 0.002 \\
+\bottomrule
+\end{tabular}
+\caption{Taux d'absorption dans l'eau (5 mm) par raie gamma Eu-152.}
+\end{table}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item \textbf{Dépendance en énergie} : Le taux d'absorption décroît fortement avec l'énergie du photon. Ceci est conforme à la variation du coefficient d'atténuation massique de l'eau :
+    \begin{equation}
+        \mu/\rho \propto E^{-3} \quad \text{(effet photoélectrique, basse énergie)}
+    \end{equation}
+    \begin{equation}
+        \mu/\rho \propto E^{-1} \quad \text{(diffusion Compton, haute énergie)}
+    \end{equation}
+    
+    \item \textbf{Raies X à 40 keV} : Ces raies ont le taux d'absorption le plus élevé ($\sim$ 2.7\%). C'est cohérent avec le coefficient d'atténuation élevé de l'eau à basse énergie ($\mu \approx 0.27$ cm$^{-1}$ à 40 keV).
+    
+    \item \textbf{Raies de haute énergie} : Les raies au-delà de 500 keV ont des taux d'absorption inférieurs à 0.1\%, reflétant la grande transparence de l'eau aux photons de haute énergie.
+    
+    \item \textbf{Implication dosimétrique} : Bien que les raies de basse énergie soient mieux absorbées, leur contribution à la dose totale dépend aussi de leur intensité d'émission. La raie à 344 keV, très intense mais peu absorbée, peut contribuer significativement à la dose via les interactions Compton.
+\end{itemize}
+
+% ============================================================================
+\section{Figure 7 : Cartes 2D de dépôt d'énergie}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente deux cartes bidimensionnelles du dépôt d'énergie :
+\begin{itemize}
+    \item \textbf{Carte XY} : Vue de dessus (projection dans le plan perpendiculaire au faisceau)
+    \item \textbf{Carte RZ} : Coupe longitudinale (rayon vs. position axiale)
+\end{itemize}
+
+Les deux cartes utilisent une échelle de couleur logarithmique.
+
+\subsection{Contenu observé}
+
+\textbf{Carte XY :}
+\begin{itemize}
+    \item Distribution circulaire uniforme de rayon 25 mm
+    \item Environ $2.84 \times 10^7$ entrées
+    \item Intensité relativement homogène sur toute la surface
+    \item Léger gradient radial (centre légèrement plus intense)
+\end{itemize}
+
+\textbf{Carte RZ :}
+\begin{itemize}
+    \item Visualisation de l'empilement des volumes (z de 98 à 108 mm environ)
+    \item Dépôt d'énergie concentré dans la région de l'eau
+    \item Gradient en z visible : maximum proche de l'entrée, décroissance vers la sortie
+    \item Extension radiale jusqu'à 25--27 mm (incluant les parois du container)
+\end{itemize}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item \textbf{Symétrie azimutale} : La carte XY confirme la symétrie cylindrique de la géométrie et l'homogénéité azimutale du dépôt d'énergie.
+    
+    \item \textbf{Profil en profondeur} : La carte RZ montre clairement :
+    \begin{itemize}
+        \item Le build-up électronique dans les premiers mm
+        \item L'atténuation exponentielle en profondeur
+        \item Les interfaces entre les différents volumes (PMMA/eau, eau/tungstène)
+    \end{itemize}
+    
+    \item \textbf{Localisation des volumes} : On distingue sur la carte RZ :
+    \begin{itemize}
+        \item z $\approx$ 96--105 mm : volume d'eau (dépôt principal)
+        \item z $\approx$ 91--96 mm : PMMA (dépôt plus faible)
+        \item z $>$ 106 mm : fond du container (pas de dépôt significatif)
+    \end{itemize}
+    
+    \item \textbf{Validation géométrique} : Ces cartes permettent de vérifier que la géométrie simulée correspond bien au design prévu et que le dépôt d'énergie se produit dans les volumes attendus.
+\end{itemize}
+
+% ============================================================================
+\section{Synthèse et conclusions}
+% ============================================================================
+
+\subsection{Résultats principaux}
+
+L'analyse des figures générées par \texttt{analyse\_Dose\_v2.C} permet de tirer les conclusions suivantes :
+
+\begin{enumerate}
+    \item \textbf{Spectre source} : Le spectre Eu-152 simulé est conforme aux données nucléaires, avec toutes les raies principales correctement représentées.
+    
+    \item \textbf{Transmission} : En configuration sans filtre, environ 95\% des photons émis atteignent le volume d'eau.
+    
+    \item \textbf{Absorption} : Les raies X à 40 keV ont le taux d'absorption le plus élevé ($\sim$ 2.7\%), tandis que les raies de haute énergie ($>$ 500 keV) sont peu absorbées ($<$ 0.1\%).
+    
+    \item \textbf{Distribution de dose} : Un gradient radial de dose est observé, avec la dose maximale au centre (anneau 0) et une décroissance vers la périphérie.
+    
+    \item \textbf{Électrons secondaires} : Le spectre des électrons secondaires présente une distribution décroissante typique des processus Compton et photoélectrique.
+\end{enumerate}
+
+\subsection{Qualité de la simulation}
+
+\begin{itemize}
+    \item Statistique suffisante : $\sim 5 \times 10^7$ photons simulés
+    \item Résolution spatiale : step limit de 0.1 mm dans l'eau
+    \item Cohérence physique des résultats observés
+\end{itemize}
+
+\subsection{Perspectives}
+
+Ces résultats servent de base pour :
+\begin{itemize}
+    \item L'optimisation de la géométrie du dispositif
+    \item La comparaison avec des mesures expérimentales
+    \item L'évaluation de l'effet d'un filtre W/PETG sur la distribution de dose
+\end{itemize}
+
+\end{document}

@@ -1,117 +1,171 @@
-#ifndef RUNACTION_HH
-#define RUNACTION_HH
+#ifndef RunAction_h
+#define RunAction_h 1
 
 #include "G4UserRunAction.hh"
+#include "DetectorConstruction.hh"
 #include "EventAction.hh"
 #include "globals.hh"
 #include <array>
 #include <vector>
 
 class G4Run;
-class DetectorConstruction;
+
+/// @brief Gestion du run avec sortie ROOT et statistiques de dose
+/// VERSION SANS FILTRE - Avec output ROOT
+///
+/// Cette classe gère :
+/// - L'accumulation des statistiques sur le run entier
+/// - Le calcul des débits de dose
+/// - La création et remplissage des histogrammes ROOT
+/// - Les statistiques par raie gamma Eu-152
 
 class RunAction : public G4UserRunAction
 {
 public:
     RunAction();
     virtual ~RunAction();
+    
+    virtual void BeginOfRunAction(const G4Run*);
+    virtual void EndOfRunAction(const G4Run*);
 
-    virtual void BeginOfRunAction(const G4Run*) override;
-    virtual void EndOfRunAction(const G4Run*) override;
-    
     // ═══════════════════════════════════════════════════════════════
-    // ACCUMULATION DES DONNÉES
+    // MÉTHODES POUR REMPLIR LES HISTOGRAMMES ROOT
+    // (appelées depuis SteppingAction ou EventAction)
     // ═══════════════════════════════════════════════════════════════
     
+    void FillGammaEmittedSpectrum(G4double energy_keV);
+    void FillGammaEnteringWater(G4double energy_keV);
+    void FillEdepWater(G4double edep_keV);
+    void FillEdepRing(G4int ringID, G4double edep_keV);
+    void FillElectronSpectrum(G4double energy_keV);
+    void FillEdepXY(G4double x_mm, G4double y_mm, G4double weight = 1.0);
+    void FillEdepRZ(G4double r_mm, G4double z_mm, G4double weight = 1.0);
+    void FillStepNtuple(G4int eventID, G4double x, G4double y, G4double z, 
+                        G4double edep, G4int ringID, 
+                        const G4String& particleName, const G4String& processName);
+
+    // ═══════════════════════════════════════════════════════════════
+    // MÉTHODES POUR REMPLIR LES NTUPLES PRECONTAINER/POSTCONTAINER
+    // ═══════════════════════════════════════════════════════════════
+    
+    void FillPreContainerNtuple(G4int eventID, 
+                                 G4int nPhotons, G4double sumEPhotons_keV,
+                                 G4int nElectrons, G4double sumEElectrons_keV);
+    
+    void FillPostContainerNtuple(G4int eventID,
+                                  G4int nPhotons_fwd, G4double sumEPhotons_fwd_keV,
+                                  G4int nPhotons_back, G4double sumEPhotons_back_keV,
+                                  G4int nElectrons_fwd, G4double sumEElectrons_fwd_keV,
+                                  G4int nElectrons_back, G4double sumEElectrons_back_keV);
+    
+    void FillDosesNtuple(G4int eventID,
+                          const std::array<G4double, DetectorConstruction::kNbWaterRings>& ringDeposits,
+                          G4double totalDeposit,
+                          G4int nPrimaries, G4int nTransmitted, G4int nAbsorbed);
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONVERSION D'UNITÉS
+    // ═══════════════════════════════════════════════════════════════
+    
+    /// Convertit énergie (MeV) et masse (g) en nGy
+    static G4double EnergyToNanoGray(G4double energy_MeV, G4double mass_g);
+    
+    /// Convertit avec unités Geant4
+    static G4double ConvertToNanoGray(G4double energy, G4double mass);
+
+    // ═══════════════════════════════════════════════════════════════
+    // ACCUMULATION DES STATISTIQUES (appelées par EventAction)
+    // ═══════════════════════════════════════════════════════════════
+    
+    /// Ajoute l'énergie déposée dans un anneau
     void AddRingEnergy(G4int ringIndex, G4double edep);
+    
+    /// Ajoute l'énergie déposée par raie gamma
     void AddRingEnergyByLine(G4int ringIndex, G4int lineIndex, G4double edep);
     
-    // Enregistrement des statistiques par événement
+    /// Enregistre les statistiques par raie gamma
+    void RecordGammaLineStatistics(G4int lineIndex, G4bool enteredWater, 
+                                    G4bool absorbedInWater, G4int absorptionProcess);
+    
+    /// Enregistre les statistiques globales de l'événement
     void RecordEventStatistics(G4int nPrimaries, 
                                const std::vector<G4double>& primaryEnergies,
-                               G4int nTransmitted,
-                               G4int nAbsorbed,
+                               G4int nTransmitted, G4int nAbsorbed,
                                G4double totalDeposit,
-                               const std::array<G4double, 5>& ringEnergies);
+                               const std::array<G4double, DetectorConstruction::kNbWaterRings>& ringDeposits);
     
-    void RecordGammaLineStatistics(G4int lineIndex,
-                                   G4bool exitedFilter,
-                                   G4bool absorbedInFilter,
-                                   G4bool enteredWater,
-                                   G4bool absorbedInWater);
-    
-    // NOUVEAU : Enregistrement des comptages aux plans container
+    /// Enregistre les comptages aux plans container
     void RecordContainerPlaneStatistics(
         G4int preNPhotons, G4double preSumEPhotons,
         G4int preNElectrons, G4double preSumEElectrons,
         G4int postNPhotonsBack, G4double postSumEPhotonsBack,
         G4int postNElectronsBack, G4double postSumEElectronsBack,
         G4int postNPhotonsFwd, G4double postSumEPhotonsFwd,
-        G4int postNElectronsFwd, G4double postSumEElectronsFwd
-    );
-    
+        G4int postNElectronsFwd, G4double postSumEElectronsFwd);
+
     // ═══════════════════════════════════════════════════════════════
-    // COMPTEURS DE PASSAGE
+    // COMPTEURS DE VÉRIFICATION (appelées par SteppingAction)
     // ═══════════════════════════════════════════════════════════════
     
-    void IncrementFilterEntry() { fGammasEnteringFilter++; }
-    void IncrementFilterExit() { fGammasExitingFilter++; }
     void IncrementContainerEntry() { fGammasEnteringContainer++; }
     void IncrementWaterEntry() { fGammasEnteringWater++; }
     void IncrementElectronsInWater() { fElectronsInWater++; }
-    void IncrementPreFilterPlane() { fGammasPreFilterPlane++; }
-    void IncrementPostFilterPlane() { fGammasPostFilterPlane++; }
     void IncrementPreContainerPlane() { fGammasPreContainerPlane++; }
     void IncrementPostContainerPlane() { fGammasPostContainerPlane++; }
-    
+
     // ═══════════════════════════════════════════════════════════════
     // ACCESSEURS
     // ═══════════════════════════════════════════════════════════════
     
-    G4int GetLineEmitted(G4int lineIndex) const;
-    G4int GetLineAbsorbedFilter(G4int lineIndex) const;
-    G4int GetLineAbsorbedWater(G4int lineIndex) const;
-    G4double GetLineFilterAbsorptionRate(G4int lineIndex) const;
-    G4double GetLineWaterAbsorptionRate(G4int lineIndex) const;
+    /// Retourne le nom du fichier ROOT de sortie
+    const G4String& GetOutputFileName() const { return fOutputFileName; }
     
+    /// Retourne la fraction d'angle solide interceptée par le cône
+    G4double GetSolidAngleFraction() const;
+    
+    /// Retourne la masse d'un anneau (en grammes)
     G4double GetRingMass(G4int ringIndex) const { 
-        return (ringIndex >= 0 && ringIndex < 5) ? fRingMasses[ringIndex] : 0.; 
+        return (ringIndex >= 0 && ringIndex < DetectorConstruction::kNbWaterRings) 
+               ? fRingMasses[ringIndex] : 0.; 
     }
     
-    // ═══════════════════════════════════════════════════════════════
-    // CONVERSION D'UNITÉS
-    // ═══════════════════════════════════════════════════════════════
+    /// Retourne l'énergie totale déposée dans un anneau
+    G4double GetRingTotalEnergy(G4int ringIndex) const {
+        return (ringIndex >= 0 && ringIndex < DetectorConstruction::kNbWaterRings)
+               ? fRingTotalEnergy[ringIndex] : 0.;
+    }
     
-    static G4double EnergyToNanoGray(G4double energy_MeV, G4double mass_g);
-    static G4double ConvertToNanoGray(G4double energy, G4double mass);
-    
-    // ═══════════════════════════════════════════════════════════════
-    // PARAMÈTRES DE NORMALISATION
-    // ═══════════════════════════════════════════════════════════════
-    
-    void SetActivity4pi(G4double activity) { fActivity4pi = activity; }
-    void SetConeAngle(G4double angle) { fConeAngle = angle; }
-    void SetSourcePosZ(G4double z) { fSourcePosZ = z; }
-    
+    // Paramètres géométriques
     G4double GetActivity4pi() const { return fActivity4pi; }
     G4double GetConeAngle() const { return fConeAngle; }
-    G4double GetSolidAngleFraction() const { return (1. - std::cos(fConeAngle)) / 2.; }
+    G4double GetSourcePosZ() const { return fSourcePosZ; }
+    G4double GetWaterRadius() const { return fWaterRadius; }
+    G4double GetWaterBottomZ() const { return fWaterBottomZ; }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CALCULS DE NORMALISATION
+    // ═══════════════════════════════════════════════════════════════
     
+    /// Calcule le temps d'irradiation correspondant à nEvents désintégrations
     G4double CalculateIrradiationTime(G4int nEvents) const;
+    
+    /// Calcule le débit de dose à partir de la dose totale et du nombre d'événements
     G4double CalculateDoseRate(G4double totalDose_Gy, G4int nEvents) const;
 
 private:
-    void PrintResults(G4int nEvents) const;
-    void PrintDoseTable() const;
-    void PrintAbsorptionTable() const;
-    
-    // Paramètres de normalisation
-    G4double fActivity4pi;
-    G4double fConeAngle;
-    G4double fSourcePosZ;
-    G4double fMeanGammasPerDecay;
-    
-    // Compteurs globaux
+    // ═══════════════════════════════════════════════════════════════
+    // PARAMÈTRES DE LA SOURCE
+    // ═══════════════════════════════════════════════════════════════
+    G4double fActivity4pi;          // Activité 4π de la source (Bq)
+    G4double fConeAngle;            // Demi-angle du cône d'émission
+    G4double fSourcePosZ;           // Position Z de la source
+    G4double fMeanGammasPerDecay;   // Nombre moyen de gammas par désintégration
+    G4double fWaterRadius;          // Rayon de la zone d'eau
+    G4double fWaterBottomZ;         // Position Z du bas de l'eau
+
+    // ═══════════════════════════════════════════════════════════════
+    // COMPTEURS GLOBAUX
+    // ═══════════════════════════════════════════════════════════════
     G4int fTotalPrimariesGenerated;
     G4int fTotalEventsWithZeroGamma;
     G4int fTotalTransmitted;
@@ -119,33 +173,40 @@ private:
     G4int fTotalEvents;
     G4double fTotalWaterEnergy;
     G4int fTotalWaterEventCount;
-    
-    // Compteurs de passage
-    G4int fGammasEnteringFilter;
-    G4int fGammasExitingFilter;
+
+    // ═══════════════════════════════════════════════════════════════
+    // COMPTEURS DE VÉRIFICATION
+    // ═══════════════════════════════════════════════════════════════
     G4int fGammasEnteringContainer;
     G4int fGammasEnteringWater;
     G4int fElectronsInWater;
-    G4int fGammasPreFilterPlane;
-    G4int fGammasPostFilterPlane;
     G4int fGammasPreContainerPlane;
     G4int fGammasPostContainerPlane;
+
+    // ═══════════════════════════════════════════════════════════════
+    // STATISTIQUES PAR ANNEAU D'EAU
+    // ═══════════════════════════════════════════════════════════════
+    std::array<G4double, DetectorConstruction::kNbWaterRings> fRingTotalEnergy;
+    std::array<G4double, DetectorConstruction::kNbWaterRings> fRingTotalEnergy2;  // Pour variance
+    std::array<G4int, DetectorConstruction::kNbWaterRings> fRingEventCount;
+    std::array<G4double, DetectorConstruction::kNbWaterRings> fRingMasses;
     
-    // Données par anneau
-    std::array<G4double, 5> fRingTotalEnergy;
-    std::array<G4double, 5> fRingTotalEnergy2;
-    std::array<G4int, 5> fRingEventCount;
-    std::array<G4double, 5> fRingMasses;
+    // Énergie par anneau ET par raie gamma
+    std::array<std::array<G4double, EventAction::kNbGammaLines>, DetectorConstruction::kNbWaterRings> fRingEnergyByLine;
+
+    // ═══════════════════════════════════════════════════════════════
+    // STATISTIQUES PAR RAIE GAMMA Eu-152
+    // ═══════════════════════════════════════════════════════════════
+    std::array<G4int, EventAction::kNbGammaLines> fLineEmitted;
+    std::array<G4int, EventAction::kNbGammaLines> fLineEnteredWater;
+    std::array<G4int, EventAction::kNbGammaLines> fLineAbsorbedWater;
     
-    // Données par raie gamma
-    std::array<std::array<G4double, 11>, 5> fRingEnergyByLine;
-    std::array<G4int, 11> fLineEmitted;
-    std::array<G4int, 11> fLineExitedFilter;
-    std::array<G4int, 11> fLineAbsorbedFilter;
-    std::array<G4int, 11> fLineEnteredWater;
-    std::array<G4int, 11> fLineAbsorbedWater;
-    
-    // Nom du fichier de sortie
+    // Comptage par processus d'absorption pour chaque raie
+    std::array<std::array<G4int, EventAction::kNbProcesses>, EventAction::kNbGammaLines> fLineAbsorbedByProcess;
+
+    // ═══════════════════════════════════════════════════════════════
+    // FICHIER DE SORTIE ROOT
+    // ═══════════════════════════════════════════════════════════════
     G4String fOutputFileName;
 };
 

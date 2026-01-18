@@ -1,0 +1,9 @@
+Readme Couronnes_puit_3
+
+Calcul d’absorption de gamma dans de l’eau
+Source Europium-152 – Table de donnees NIST– Code Python
+Documentation technique
+January 12, 2026
+Abstract
+Ce document presente une serie de calcul analytique d’absorption en utilisant les tables de donnees du
+NIST (coefficients d’absoption) et des codes simples python. Cela concerne les raies gamma et X de la source d’Europium d’une part, le spectre relatif d’emission du MiniX et finalement une approche pour la source d’Americium 241.

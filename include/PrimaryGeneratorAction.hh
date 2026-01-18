@@ -42,8 +42,9 @@ public:
     void SetConeAngle(G4double angle) { fConeAngle = angle; }
     G4double GetConeAngle() const { return fConeAngle; }
     
-    /// @brief Retourne le nombre moyen de gammas par désintégration (théorique Eu-152)
-    static G4double GetMeanGammasPerDecay() { return 1.924; }
+    /// @brief Retourne le nombre moyen de gammas par désintégration Eu-152
+    /// Valeur arrondie de la somme des 13 intensités (202.78% ≈ 203%)
+    static G4double GetMeanGammasPerDecay() { return 2.03; }
     
 private:
     G4ParticleGun* fParticleGun;

@@ -1,0 +1,317 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{float}
+
+\geometry{margin=2.5cm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Simulation Monte Carlo Geant4}
+\lhead{Source Eu-152}
+\rfoot{Page \thepage}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single
+}
+\lstset{style=mystyle}
+
+\title{\textbf{Méthode de Génération des Événements}\\[0.5em]
+\Large Source Europium-152 dans Geant4\\[0.5em]
+\large Simulation Monte Carlo -- Puits Couronne}
+\author{Documentation Technique}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Ce document décrit la méthode de génération des particules primaires pour la simulation Monte Carlo d'une source d'Europium-152 ($^{152}$Eu) dans le cadre du projet ``Puits Couronne'' avec Geant4.
+
+\subsection{Schéma de désintégration de l'Eu-152}
+
+L'$^{152}$Eu est un radionucléide à double mode de décroissance :
+\begin{itemize}
+    \item \textbf{Capture électronique (EC)} : 72.1\% $\rightarrow$ $^{152}$Sm
+    \item \textbf{Désintégration $\beta^-$} : 27.9\% $\rightarrow$ $^{152}$Gd
+\end{itemize}
+
+Ces deux voies de décroissance mènent à des états excités des noyaux fils, qui se désexcitent par émission de rayonnements gamma. L'$^{152}$Eu est ainsi caractérisé par un spectre gamma riche avec de nombreuses raies d'intensités variées.
+
+\section{Philosophie de la Simulation}
+
+\subsection{Définition d'un événement Geant4}
+
+Dans notre simulation :
+\begin{center}
+\fbox{\textbf{1 événement Geant4 = 1 désintégration $^{152}$Eu}}
+\end{center}
+
+Chaque désintégration peut émettre \textbf{plusieurs photons gamma} de manière indépendante. Le nombre de photons émis par événement suit une distribution statistique déterminée par les intensités des raies.
+
+\subsection{Relation avec l'activité}
+
+Si la source possède une activité $A_{4\pi}$ (en Bq), alors :
+\begin{equation}
+\text{Nombre de désintégrations par seconde} = A_{4\pi}
+\end{equation}
+
+La correspondance entre le nombre d'événements simulés $N_{\text{evt}}$ et le temps d'irradiation $t_{\text{irr}}$ est :
+\begin{equation}
+t_{\text{irr}} = \frac{N_{\text{evt}}}{A_{4\pi} \times f_\Omega}
+\end{equation}
+où $f_\Omega$ est la fraction d'angle solide couverte par le cône d'émission.
+
+\section{Spectre Gamma Eu-152 Implémenté}
+
+\subsection{Raies sélectionnées}
+
+Le spectre implémenté comprend \textbf{13 raies} (2 raies X + 11 raies gamma) avec une intensité totale de 202.78\% :
+
+\begin{table}[H]
+\centering
+\caption{Spectre gamma Eu-152 implémenté (Source: NNDC/ENSDF)}
+\label{tab:spectre}
+\begin{tabular}{@{}clcc@{}}
+\toprule
+\textbf{Index} & \textbf{Énergie (keV)} & \textbf{Intensité (\%)} & \textbf{Type} \\
+\midrule
+0  & 39.52   & 20.80  & X (K$_\alpha$) \\
+1  & 40.12   & 37.70  & X (K$_\beta$) \\
+2  & 121.78  & 28.41  & $\gamma$ \\
+3  & 244.70  & 7.53   & $\gamma$ \\
+4  & 344.28  & 26.59  & $\gamma$ \\
+5  & 411.12  & 2.24   & $\gamma$ \\
+6  & 443.97  & 2.83   & $\gamma$ \\
+7  & 778.90  & 12.97  & $\gamma$ \\
+8  & 867.38  & 4.24   & $\gamma$ \\
+9  & 964.08  & 14.63  & $\gamma$ \\
+10 & 1085.87 & 10.21  & $\gamma$ \\
+11 & 1112.07 & 13.64  & $\gamma$ \\
+12 & 1408.01 & 21.01  & $\gamma$ \\
+\midrule
+\multicolumn{2}{r}{\textbf{Total :}} & \textbf{202.78} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Nombre moyen de photons par désintégration}
+
+Le nombre moyen de photons émis par désintégration est :
+\begin{equation}
+\boxed{\langle n_\gamma \rangle = \sum_{i=0}^{12} p_i = \frac{202.78}{100} \approx 2.03}
+\end{equation}
+
+Cette valeur est utilisée dans le code via la méthode \texttt{GetMeanGammasPerDecay()}.
+
+\section{Algorithme de Génération}
+
+\subsection{Principe : Tirages de Bernoulli indépendants}
+
+Pour chaque événement (désintégration), l'algorithme procède comme suit :
+
+\begin{enumerate}
+    \item Pour chaque raie $i \in \{0, 1, ..., 12\}$ :
+    \begin{itemize}
+        \item Tirer un nombre aléatoire $r \sim \mathcal{U}(0,1)$
+        \item Si $r < p_i$ (où $p_i = I_i/100$), alors la raie $i$ est émise
+    \end{itemize}
+    \item Pour chaque raie émise :
+    \begin{itemize}
+        \item Générer une direction dans le cône d'émission
+        \item Créer un vertex primaire avec l'énergie $E_i$
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Pseudo-code}
+
+\begin{lstlisting}[language=C++, caption={Algorithme de génération (simplifié)}]
+void GeneratePrimaries(G4Event* event) {
+    for (int i = 0; i < 13; i++) {
+        double r = G4UniformRand();  // r in [0,1)
+        
+        if (r < probability[i]) {
+            // Cette raie est emise
+            double energy = gammaEnergies[i] * keV;
+            G4ThreeVector direction = GenerateDirectionInCone();
+            
+            particleGun->SetParticleEnergy(energy);
+            particleGun->SetParticleMomentumDirection(direction);
+            particleGun->GeneratePrimaryVertex(event);
+        }
+    }
+}
+\end{lstlisting}
+
+\subsection{Distribution du nombre de photons par événement}
+
+Le nombre de photons $n$ émis par événement suit une loi de \textbf{Poisson composée}. En pratique, c'est la somme de 13 variables de Bernoulli indépendantes :
+\begin{equation}
+n = \sum_{i=0}^{12} X_i, \quad \text{où } X_i \sim \text{Bernoulli}(p_i)
+\end{equation}
+
+Les caractéristiques de cette distribution sont :
+\begin{align}
+\mathbb{E}[n] &= \sum_{i=0}^{12} p_i = 2.03 \\
+\text{Var}(n) &= \sum_{i=0}^{12} p_i(1-p_i) \approx 1.45
+\end{align}
+
+La probabilité d'avoir un événement ``vide'' (aucun photon émis) est :
+\begin{equation}
+P(n=0) = \prod_{i=0}^{12} (1-p_i) \approx 0.4\%
+\end{equation}
+
+Cette probabilité est très faible car l'intensité totale est élevée (203\%).
+
+\section{Génération de la Direction dans le Cône}
+
+\subsection{Géométrie du cône d'émission}
+
+La source émet dans un cône de demi-angle $\theta_{\max} = 45°$ orienté selon l'axe $+z$ :
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.6\textwidth}
+\begin{align*}
+&\text{Axe du cône : } \vec{u}_z = (0, 0, 1) \\
+&\text{Demi-angle : } \theta_{\max} = 45° \\
+&\text{Fraction d'angle solide : } f_\Omega = \frac{1 - \cos\theta_{\max}}{2} \approx 14.6\%
+\end{align*}
+\end{minipage}
+\end{figure}
+
+\subsection{Distribution uniforme sur la calotte sphérique}
+
+Pour obtenir une distribution uniforme sur la surface de la calotte sphérique, on utilise :
+
+\begin{equation}
+\cos\theta = 1 - u \cdot (1 - \cos\theta_{\max}), \quad u \sim \mathcal{U}(0,1)
+\end{equation}
+\begin{equation}
+\phi = 2\pi v, \quad v \sim \mathcal{U}(0,1)
+\end{equation}
+
+La direction est alors :
+\begin{equation}
+\vec{d} = (\sin\theta \cos\phi, \, \sin\theta \sin\phi, \, \cos\theta)
+\end{equation}
+
+\subsection{Code de génération}
+
+\begin{lstlisting}[language=C++, caption={Génération de direction dans le cône}]
+void GenerateDirectionInCone(G4double coneAngle,
+                             G4ThreeVector& direction) {
+    // cos(theta) uniforme entre cos(coneAngle) et 1
+    G4double cosTheta = 1.0 - G4UniformRand() * (1.0 - cos(coneAngle));
+    G4double theta = acos(cosTheta);
+    
+    // phi uniforme entre 0 et 2*pi
+    G4double phi = G4UniformRand() * 2.0 * CLHEP::pi;
+    
+    // Direction cartesienne
+    G4double sinTheta = sin(theta);
+    direction.set(sinTheta * cos(phi),
+                  sinTheta * sin(phi),
+                  cosTheta);
+}
+\end{lstlisting}
+
+\section{Normalisation et Calcul de Dose}
+
+\subsection{Paramètres de la simulation}
+
+\begin{table}[H]
+\centering
+\caption{Paramètres de normalisation}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Paramètre} & \textbf{Symbole} & \textbf{Valeur} \\
+\midrule
+Activité source (4$\pi$) & $A_{4\pi}$ & 42 kBq \\
+Demi-angle du cône & $\theta_{\max}$ & 45° \\
+Fraction d'angle solide & $f_\Omega$ & 14.6\% \\
+Activité effective (cône) & $A_{\text{eff}}$ & 6.15 kBq \\
+Photons moyens/désintégration & $\langle n_\gamma \rangle$ & 2.03 \\
+Position source & $z_s$ & 73.5 mm \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Temps d'irradiation équivalent}
+
+Pour $N_{\text{evt}}$ événements simulés, le temps d'irradiation équivalent est :
+\begin{equation}
+\boxed{t_{\text{irr}} = \frac{N_{\text{evt}}}{A_{4\pi} \times f_\Omega} = \frac{N_{\text{evt}}}{42000 \times 0.146} \text{ s} = \frac{N_{\text{evt}}}{6132} \text{ s}}
+\end{equation}
+
+\subsection{Calcul du débit de dose}
+
+Si $D_{\text{sim}}$ est la dose totale simulée (en Gy) pour $N_{\text{evt}}$ événements :
+\begin{equation}
+\boxed{\dot{D} = \frac{D_{\text{sim}}}{t_{\text{irr}}} = \frac{D_{\text{sim}} \times A_{4\pi} \times f_\Omega}{N_{\text{evt}}}}
+\end{equation}
+
+En nGy/s :
+\begin{equation}
+\dot{D} \text{ (nGy/s)} = \frac{D_{\text{sim}} \text{ (nGy)}}{N_{\text{evt}}} \times 6132
+\end{equation}
+
+\section{Résumé des Constantes dans le Code}
+
+\begin{table}[H]
+\centering
+\caption{Correspondance code/physique}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Variable C++} & \textbf{Valeur} & \textbf{Signification} \\
+\midrule
+\texttt{GetMeanGammasPerDecay()} & 2.03 & $\langle n_\gamma \rangle$ \\
+\texttt{fMeanGammasPerDecay} & 2.03 & Idem (RunAction) \\
+\texttt{fActivity4pi} & 4.2$\times 10^4$ & $A_{4\pi}$ en Bq \\
+\texttt{fConeAngle} & 45° & $\theta_{\max}$ \\
+\texttt{GetSolidAngleFraction()} & 0.146 & $f_\Omega$ \\
+\texttt{kNbGammaLines} & 13 & Nombre de raies \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Validation}
+
+\subsection{Vérifications recommandées}
+
+\begin{enumerate}
+    \item \textbf{Nombre moyen de primaires} : Vérifier que $\langle n_\gamma \rangle \approx 2.03$ sur un grand nombre d'événements
+    \item \textbf{Distribution angulaire} : Vérifier que $\cos\theta$ est uniforme dans $[\cos 45°, 1]$
+    \item \textbf{Spectre en énergie} : Vérifier que les intensités relatives correspondent aux valeurs du tableau
+    \item \textbf{Événements vides} : Vérifier que $\sim 0.4\%$ des événements n'émettent aucun photon
+\end{enumerate}
+
+\subsection{Formule de vérification}
+
+Après $N$ événements, le nombre total de photons générés devrait être :
+\begin{equation}
+N_\gamma^{\text{total}} \approx N \times 2.03 \pm \sqrt{N \times 1.45}
+\end{equation}
+
+\end{document}

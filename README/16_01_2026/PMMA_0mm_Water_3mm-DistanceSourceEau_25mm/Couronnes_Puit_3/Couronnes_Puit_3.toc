@@ -1,0 +1,41 @@
+\contentsline {section}{\numberline {1}\Large \color {blue} \textbf {Signification des pourcentages d'absorption}\color {black}}{3}{section.1}%
+\contentsline {section}{\numberline {2}\Large \color {blue} \textbf {Tableau des épaisseurs d'eau pour 90$\%$ d'absorption - Raies Eu-152}\color {black}}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}\color {blue}\textbf {Tableau comparatif avec différents taux d'absorption}\color {black}}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}\color {blue}\textbf {Comparaison avec la simulation (5 mm d'eau)}\color {black}}{6}{subsection.2.2}%
+\contentsline {section}{\numberline {3}\Large \color {blue} \textbf {Tableau du pourcentage d'absorption des raies Eu-152 dans l'eau Épaisseurs : 3 mm, 5 mm, 10 mm}\color {black}}{7}{section.3}%
+\contentsline {section}{\numberline {4}\Large \color {blue} \textbf {Probabilite d'absorption par couche d'eau (1 cm) \\ Raies Eu-152 - Epaisseur totale : 3 cm}\color {black}}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}\color {blue}\textbf {Ratio entre couches successives}\color {black}}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}\color {blue}\textbf {Explication physique}\color {black}}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}\color {blue}\textbf {Synthese}\color {black}}{9}{subsection.4.3}%
+\contentsline {section}{\numberline {5}\Large \color {blue} \textbf {Probabilite d'absorption par couche d'eau (5 mm) \\ Raies Eu-152 - Epaisseur totale : 15 mm}\color {black}}{10}{section.5}%
+\contentsline {subsection}{\numberline {5.1}\color {blue}\textbf {Ratio entre couches successives}\color {black}}{10}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}\color {blue}\textbf {Explication physique}\color {black}}{11}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}\color {blue}\textbf {Synthese}\color {black}}{11}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}\color {blue}\textbf {Comparaison avec les couches de 1 cm}\color {black}}{11}{subsection.5.4}%
+\contentsline {section}{\numberline {6}\Large \color {blue} \textbf {Probabilite d'absorption par couche d'eau (5 mm) \\ Raies Eu-152 - Comparaison : 1er 5mm vs (2eme + 3eme) 5mm}\color {black}}{12}{section.6}%
+\contentsline {subsection}{\numberline {6.1}\color {blue}\textbf {Interpretation physique}\color {black}}{12}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}\color {blue}\textbf {Synthese}\color {black}}{13}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}\color {blue}\textbf {Formule generale du ratio}\color {black}}{13}{subsection.6.3}%
+\contentsline {section}{\numberline {7}\Large \color {blue} \textbf {Probabilite d'absorption dans 1 cm d'eau \\ Distribution uniforme 0-50 keV - 10 bins de 5 keV chacun}\color {black}}{14}{section.7}%
+\contentsline {section}{\numberline {8}\Large \color {blue} \textbf {Probabilite d'absorption dans 1 cm d'eau \\ Spectre MiniX sur 30 points}\color {black}}{16}{section.8}%
+\contentsline {subsection}{\numberline {8.1}\color {blue}\textbf {Taux d'absorption en fonction de l'energie}\color {black}}{16}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}\color {blue}\textbf {Resultats}\color {black}}{17}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}\color {blue}\textbf {Conclusions}\color {black}}{17}{subsection.8.3}%
+\contentsline {section}{\numberline {9}\Large \color {blue} \textbf {Probabilite d'absorption dans 5 mm d'eau \\ Spectre MiniX 30 points}\color {black}}{18}{section.9}%
+\contentsline {subsection}{\numberline {9.1}\color {blue}\textbf {Taux d'absorption en fonction de l'energie}\color {black}}{18}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}\color {blue}\textbf {Resultats}\color {black}}{19}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}\color {blue}\textbf {Comparaison 5 mm vs 1 cm}\color {black}}{19}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}\color {blue}\textbf {Conclusions}\color {black}}{20}{subsection.9.4}%
+\contentsline {section}{\numberline {10}\Large \color {blue} \textbf {Cas de la source d'Am-241}\color {black}}{21}{section.10}%
+\contentsline {subsection}{\numberline {10.1}\color {blue}\textbf {Caractéristiques nucléaires}\color {black}}{21}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}\color {blue}\textbf {Schéma de désintégration complet}\color {black}}{21}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}\color {blue}\textbf {Résumé des émissions}\color {black}}{22}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}\color {blue}\textbf {Particules alpha ($\alpha $)}\color {black}}{22}{subsection.10.4}%
+\contentsline {subsection}{\numberline {10.5}\color {blue}\textbf {Rayonnement gamma ($\gamma $)}\color {black}}{22}{subsection.10.5}%
+\contentsline {subsection}{\numberline {10.6}\color {blue}\textbf {Rayons X (fluorescence L du Neptunium)}\color {black}}{23}{subsection.10.6}%
+\contentsline {subsection}{\numberline {10.7}\color {blue}\textbf {Tableau du pourcentage d'absorption des raies Am-241 dans l'eau // Épaisseurs : 3 mm, 5 mm, 10 mm}\color {black}}{23}{subsection.10.7}%
+\contentsline {subsection}{\numberline {10.8}\color {blue}\textbf {Comparaison Am-241 vs Eu-152}\color {black}}{24}{subsection.10.8}%
+\contentsline {subsection}{\numberline {10.9}\color {blue}\textbf {Électrons de conversion interne}\color {black}}{24}{subsection.10.9}%
+\contentsline {subsection}{\numberline {10.10}\color {blue}\textbf {Électrons Auger}\color {black}}{25}{subsection.10.10}%
+\contentsline {subsection}{\numberline {10.11}\color {blue}\textbf {Bilan par désintégration}\color {black}}{25}{subsection.10.11}%
+\contentsline {subsection}{\numberline {10.12}\color {blue}\textbf {Implications pour la simulation et la dosimétrie}\color {black}}{26}{subsection.10.12}%

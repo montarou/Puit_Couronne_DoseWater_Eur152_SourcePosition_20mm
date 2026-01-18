@@ -8,6 +8,7 @@
 #include "G4Track.hh"
 #include "G4StepPoint.hh"
 #include "G4VPhysicalVolume.hh"
+#include "G4VProcess.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4RunManager.hh"
 #include <cmath>
@@ -29,6 +30,8 @@ SteppingAction::SteppingAction(EventAction* eventAction, RunAction* runAction)
     G4cout << "║  SteppingAction: Mode VERBOSE activé pour " << fVerboseMaxEvents << " événements     ║" << G4endl;
     G4cout << "║  Suivi par raie gamma Eu-152 ACTIVÉ                            ║" << G4endl;
     G4cout << "║  Comptage aux plans PreContainer et PostContainer ACTIVÉ       ║" << G4endl;
+    G4cout << "║  *** CONFIGURATION SANS FILTRE ***                             ║" << G4endl;
+    G4cout << "║  *** REMPLISSAGE HISTOGRAMMES ROOT ACTIVÉ ***                  ║" << G4endl;
     G4cout << "║  Diagnostics -> output.log                                     ║" << G4endl;
     G4cout << "╚═══════════════════════════════════════════════════════════════╝\n" << G4endl;
 }
@@ -71,6 +74,10 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
     G4ThreeVector momentum = step->GetTrack()->GetMomentumDirection();
     G4double pz = momentum.z();
 
+    // Position
+    G4ThreeVector pos = preStepPoint->GetPosition();
+    G4double radius = std::sqrt(pos.x()*pos.x() + pos.y()*pos.y());
+
     // Noms des volumes logiques
     G4String logicalVolumeName = preStepPoint->GetTouchableHandle()
                                              ->GetVolume()
@@ -83,21 +90,51 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // ENREGISTREMENT DU SPECTRE DES GAMMAS PRIMAIRES ÉMIS
+    // (Premier step de chaque gamma primaire)
+    // ═══════════════════════════════════════════════════════════════
+    
+    if (parentID == 0 && particleName == "gamma" && track->GetCurrentStepNumber() == 1) {
+        // C'est le premier step d'un gamma primaire - enregistrer son énergie initiale
+        G4double initialEnergy = track->GetVertexKineticEnergy();
+        fRunAction->FillGammaEmittedSpectrum(initialEnergy / keV);
+        
+        // ═══════════════════════════════════════════════════════════════
+        // CORRECTION BUG : Enregistrer le gamma primaire avec son VRAI trackID
+        // (assigné par Geant4, pas une supposition basée sur l'ordre des vertex)
+        // ═══════════════════════════════════════════════════════════════
+        G4ThreeVector momDir = track->GetVertexMomentumDirection();
+        G4double theta = std::acos(momDir.z());
+        G4double phi = std::atan2(momDir.y(), momDir.x());
+        fEventAction->RegisterPrimaryGamma(trackID, initialEnergy, theta, phi);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // DÉTECTION DE L'ABSORPTION DES GAMMAS PRIMAIRES
     // ═══════════════════════════════════════════════════════════════
     
-    // Si un gamma primaire est tué (absorbé), enregistrer où
+    // Si un gamma primaire est tué (absorbé), enregistrer où et par quel processus
     if (parentID == 0 && particleName == "gamma") {
         G4TrackStatus status = track->GetTrackStatus();
         if (status == fStopAndKill || status == fKillTrackAndSecondaries) {
-            fEventAction->RecordGammaAbsorbed(trackID, logicalVolumeName);
+            // Récupérer le processus qui a causé l'absorption
+            G4String processName = "Unknown";
+            const G4VProcess* process = postStepPoint->GetProcessDefinedStep();
+            if (process) {
+                processName = process->GetProcessName();
+            }
+            
+            // CORRECTION : utiliser postLogVolName car l'absorption se produit
+            // à la fin du step (dans le volume POST), pas au début (volume PRE)
+            fEventAction->RecordGammaAbsorbed(trackID, postLogVolName, processName);
             
             if (fVerbose && eventID < fVerboseMaxEvents) {
                 std::stringstream ss;
                 ss << "GAMMA_ABSORBED | Event " << eventID
                    << " | trackID=" << trackID
-                   << " | in " << logicalVolumeName
-                   << " | E=" << kineticEnergy/keV << " keV";
+                   << " | in " << postLogVolName
+                   << " | E=" << kineticEnergy/keV << " keV"
+                   << " | process=" << processName;
                 Logger::GetInstance()->LogLine(ss.str());
             }
         }
@@ -126,6 +163,25 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
             if (ringIndex >= 0) {
                 fEventAction->AddRingEnergy(ringIndex, edep);
                 
+                // ═══════════════════════════════════════════════════════════════
+                // REMPLISSAGE DES HISTOGRAMMES ROOT
+                // ═══════════════════════════════════════════════════════════════
+                fRunAction->FillEdepWater(edep / keV);
+                fRunAction->FillEdepRing(ringIndex, edep / keV);
+                fRunAction->FillEdepXY(pos.x() / mm, pos.y() / mm, edep / keV);
+                fRunAction->FillEdepRZ(radius / mm, pos.z() / mm, edep / keV);
+                
+                // Spectre des électrons secondaires
+                if (particleName == "e-" && parentID != 0) {
+                    fRunAction->FillElectronSpectrum(kineticEnergy / keV);
+                }
+                
+                // Remplir le ntuple de steps (optionnel, peut être désactivé pour performance)
+                const G4VProcess* proc = postStepPoint->GetProcessDefinedStep();
+                G4String procName = proc ? proc->GetProcessName() : "Unknown";
+                fRunAction->FillStepNtuple(eventID, pos.x()/mm, pos.y()/mm, pos.z()/mm,
+                                           edep/keV, ringIndex, particleName, procName);
+                
                 // Suivi par raie gamma : identifier la raie du gamma parent
                 // Pour les électrons secondaires, trouver le gamma primaire ancêtre
                 G4int gammaLineIndex = -1;
@@ -146,9 +202,6 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
                 }
                 
                 if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4ThreeVector pos = preStepPoint->GetPosition();
-                    G4double radius = std::sqrt(pos.x()*pos.x() + pos.y()*pos.y());
-                    
                     std::stringstream ss;
                     ss << "WATER_DEPOSIT | Event " << eventID
                        << " | Ring " << ringIndex
@@ -170,149 +223,76 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
     // COMPTEURS DE VÉRIFICATION (toujours actifs)
     // ═══════════════════════════════════════════════════════════════
     
-    // Entrée dans le filtre (gamma primaire)
-    if (postLogVolName == "FilterLog" && logicalVolumeName != "FilterLog") {
+    // Entrée dans le container = entrée dans Water1 (premier volume d'eau, z=100-102mm)
+    // C'est le premier volume d'eau rencontré par les gammas venant de la source
+    if (postLogVolName == "Water1Log" && logicalVolumeName != "Water1Log") {
         if (parentID == 0 && particleName == "gamma") {
-            fRunAction->IncrementFilterEntry();
-            
-            if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
-                G4int lineIdx = fEventAction->GetGammaLineForTrack(trackID);
-                std::stringstream ss;
-                ss << "FILTER_ENTRY | Event " << eventID
-                   << " | trackID=" << trackID
-                   << " | E=" << kineticEnergy/keV << " keV";
-                if (lineIdx >= 0) {
-                    ss << " | [" << EventAction::GetGammaLineName(lineIdx) << "]";
+            // Vérifier si ce gamma n'a pas déjà été compté
+            if (!fEventAction->HasEnteredContainer(trackID)) {
+                fRunAction->IncrementContainerEntry();
+                fEventAction->RecordContainerEntry(trackID);
+                
+                if (fVerbose && eventID < fVerboseMaxEvents) {
+                    G4ThreeVector posPost = postStepPoint->GetPosition();
+                    std::stringstream ss;
+                    ss << "WATER1_ENTRY | Event " << eventID
+                       << " | trackID=" << trackID
+                       << " | E=" << kineticEnergy/keV << " keV"
+                       << " | z=" << posPost.z()/mm << " mm";
+                    Logger::GetInstance()->LogLine(ss.str());
                 }
-                ss << " | z=" << pos.z()/mm << " mm";
-                Logger::GetInstance()->LogLine(ss.str());
             }
         }
     }
     
-    // Sortie du filtre (gamma primaire)
-    if (logicalVolumeName == "FilterLog" && postLogVolName != "FilterLog") {
-        if (parentID == 0 && particleName == "gamma") {
-            fRunAction->IncrementFilterExit();
-            
-            // Enregistrer la sortie du filtre pour ce gamma
-            G4double postEnergy = postStepPoint->GetKineticEnergy();
-            fEventAction->RecordFilterExit(trackID, postEnergy);
-            
-            if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
-                G4int lineIdx = fEventAction->GetGammaLineForTrack(trackID);
-                std::stringstream ss;
-                ss << "FILTER_EXIT | Event " << eventID
-                   << " | trackID=" << trackID
-                   << " | E=" << postEnergy/keV << " keV";
-                if (lineIdx >= 0) {
-                    ss << " | [" << EventAction::GetGammaLineName(lineIdx) << "]";
-                }
-                ss << " | z=" << pos.z()/mm << " mm";
-                Logger::GetInstance()->LogLine(ss.str());
-            }
-        }
-    }
+    // ═══════════════════════════════════════════════════════════════
+    // ENTRÉE DANS L'EAU
+    // - Seulement primaires
+    // - Pas de double-comptage grâce à HasEnteredWater()
+    // ═══════════════════════════════════════════════════════════════
     
-    // Entrée dans le container (gamma primaire)
-    if ((postLogVolName == "ContainerWallLog" || postLogVolName == "ContainerTopLog") 
-        && logicalVolumeName != "ContainerWallLog" && logicalVolumeName != "ContainerTopLog") {
-        if (parentID == 0 && particleName == "gamma") {
-            fRunAction->IncrementContainerEntry();
-            
-            if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
-                std::stringstream ss;
-                ss << "CONTAINER_ENTRY | Event " << eventID
-                   << " | trackID=" << trackID
-                   << " | E=" << kineticEnergy/keV << " keV"
-                   << " | z=" << pos.z()/mm << " mm";
-                Logger::GetInstance()->LogLine(ss.str());
-            }
-        }
-    }
-    
-    // Entrée dans l'eau
     if (fWaterRingNames.find(postLogVolName) != fWaterRingNames.end() 
         && fWaterRingNames.find(logicalVolumeName) == fWaterRingNames.end()) {
         
-        if (particleName == "gamma") {
-            fRunAction->IncrementWaterEntry();
-            
-            // Enregistrer l'entrée dans l'eau pour ce gamma primaire
-            if (parentID == 0) {
+        // Ne compter que les gammas PRIMAIRES
+        if (particleName == "gamma" && parentID == 0) {
+            // Vérifier si ce gamma n'a pas déjà été compté (via EventAction)
+            if (!fEventAction->HasEnteredWater(trackID)) {
+                fRunAction->IncrementWaterEntry();
                 fEventAction->RecordWaterEntry(trackID, kineticEnergy);
+                
+                // Remplir l'histogramme du spectre entrant dans l'eau
+                fRunAction->FillGammaEnteringWater(kineticEnergy / keV);
+                
+                if (fVerbose && eventID < fVerboseMaxEvents) {
+                    G4ThreeVector posPost = postStepPoint->GetPosition();
+                    G4double radiusPost = std::sqrt(posPost.x()*posPost.x() + posPost.y()*posPost.y());
+                    G4int lineIdx = fEventAction->GetGammaLineForTrack(trackID);
+                    std::stringstream ss;
+                    ss << "WATER_ENTRY | Event " << eventID
+                       << " | " << particleName
+                       << " | trackID=" << trackID
+                       << " | parentID=" << parentID
+                       << " | E=" << kineticEnergy/keV << " keV";
+                    if (lineIdx >= 0) {
+                        ss << " | [" << EventAction::GetGammaLineName(lineIdx) << "]";
+                    }
+                    ss << " | r=" << radiusPost/mm << " mm"
+                       << " | z=" << posPost.z()/mm << " mm"
+                       << " | " << postLogVolName;
+                    Logger::GetInstance()->LogLine(ss.str());
+                }
             }
         }
+        
+        // Compter les électrons entrant dans l'eau (tous, pas seulement primaires)
         if (particleName == "e-") {
             fRunAction->IncrementElectronsInWater();
         }
-        
-        if (fVerbose && eventID < fVerboseMaxEvents) {
-            G4ThreeVector pos = postStepPoint->GetPosition();
-            G4double radius = std::sqrt(pos.x()*pos.x() + pos.y()*pos.y());
-            G4int lineIdx = -1;
-            if (parentID == 0 && particleName == "gamma") {
-                lineIdx = fEventAction->GetGammaLineForTrack(trackID);
-            }
-            std::stringstream ss;
-            ss << "WATER_ENTRY | Event " << eventID
-               << " | " << particleName
-               << " | trackID=" << trackID
-               << " | parentID=" << parentID
-               << " | E=" << kineticEnergy/keV << " keV";
-            if (lineIdx >= 0) {
-                ss << " | [" << EventAction::GetGammaLineName(lineIdx) << "]";
-            }
-            ss << " | r=" << radius/mm << " mm"
-               << " | z=" << pos.z()/mm << " mm"
-               << " | " << postLogVolName;
-            Logger::GetInstance()->LogLine(ss.str());
-        }
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // PLANS DE COMPTAGE CYLINDRIQUES (gammas uniquement, direction +z)
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Plan pré-filtre (traversée dans le sens +z)
-    if (postLogVolName == "PreFilterPlaneLog" && logicalVolumeName != "PreFilterPlaneLog") {
-        if (particleName == "gamma" && pz > 0) {
-            fRunAction->IncrementPreFilterPlane();
-            
-            if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
-                std::stringstream ss;
-                ss << "PRE_FILTER_PLANE | Event " << eventID
-                   << " | trackID=" << trackID
-                   << " | E=" << kineticEnergy/keV << " keV"
-                   << " | z=" << pos.z()/mm << " mm";
-                Logger::GetInstance()->LogLine(ss.str());
-            }
-        }
-    }
-    
-    // Plan post-filtre (traversée dans le sens +z)
-    if (postLogVolName == "PostFilterPlaneLog" && logicalVolumeName != "PostFilterPlaneLog") {
-        if (particleName == "gamma" && pz > 0) {
-            fRunAction->IncrementPostFilterPlane();
-            
-            if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
-                std::stringstream ss;
-                ss << "POST_FILTER_PLANE | Event " << eventID
-                   << " | trackID=" << trackID
-                   << " | E=" << kineticEnergy/keV << " keV"
-                   << " | z=" << pos.z()/mm << " mm";
-                Logger::GetInstance()->LogLine(ss.str());
-            }
-        }
-    }
-    
-    // ═══════════════════════════════════════════════════════════════
-    // PLAN PRE-CONTAINER (avant eau, matériau Air)
+    // PLAN PRE-CONTAINER (dans eau, entrée)
     // Comptage des photons et électrons vers l'eau (+z)
     // ═══════════════════════════════════════════════════════════════
     
@@ -323,13 +303,13 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
             fEventAction->AddPreContainerPhoton(kineticEnergy);
             
             if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
+                G4ThreeVector posPost = postStepPoint->GetPosition();
                 std::stringstream ss;
                 ss << "PRE_CONTAINER_PLANE | Event " << eventID
                    << " | PHOTON +z"
                    << " | trackID=" << trackID
                    << " | E=" << kineticEnergy/keV << " keV"
-                   << " | z=" << pos.z()/mm << " mm";
+                   << " | z=" << posPost.z()/mm << " mm";
                 Logger::GetInstance()->LogLine(ss.str());
             }
         }
@@ -338,20 +318,20 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
             fEventAction->AddPreContainerElectron(kineticEnergy);
             
             if (fVerbose && eventID < fVerboseMaxEvents) {
-                G4ThreeVector pos = postStepPoint->GetPosition();
+                G4ThreeVector posPost = postStepPoint->GetPosition();
                 std::stringstream ss;
                 ss << "PRE_CONTAINER_PLANE | Event " << eventID
                    << " | ELECTRON +z"
                    << " | trackID=" << trackID
                    << " | E=" << kineticEnergy/keV << " keV"
-                   << " | z=" << pos.z()/mm << " mm";
+                   << " | z=" << posPost.z()/mm << " mm";
                 Logger::GetInstance()->LogLine(ss.str());
             }
         }
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // PLAN POST-CONTAINER (après eau, matériau W_PETG)
+    // PLAN POST-CONTAINER (après eau, matériau eau)
     // Comptage des particules dans les deux sens
     // ═══════════════════════════════════════════════════════════════
     
@@ -360,32 +340,32 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
         // --- PHOTONS ---
         if (particleName == "gamma") {
             if (pz > 0) {
-                // Photons TRANSMIS vers l'eau (+z) - NOUVEAU
+                // Photons TRANSMIS vers la sortie (+z)
                 fRunAction->IncrementPostContainerPlane();
                 fEventAction->AddPostContainerPhotonFwd(kineticEnergy);
                 
                 if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4ThreeVector pos = postStepPoint->GetPosition();
+                    G4ThreeVector posPost = postStepPoint->GetPosition();
                     std::stringstream ss;
                     ss << "POST_CONTAINER_PLANE | Event " << eventID
                        << " | PHOTON +z (transmis)"
                        << " | trackID=" << trackID
                        << " | E=" << kineticEnergy/keV << " keV"
-                       << " | z=" << pos.z()/mm << " mm";
+                       << " | z=" << posPost.z()/mm << " mm";
                     Logger::GetInstance()->LogLine(ss.str());
                 }
             } else {
-                // Photons RÉTRODIFFUSÉS depuis l'eau (-z)
+                // Photons RÉTRODIFFUSÉS depuis la sortie (-z)
                 fEventAction->AddPostContainerPhotonBack(kineticEnergy);
                 
                 if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4ThreeVector pos = postStepPoint->GetPosition();
+                    G4ThreeVector posPost = postStepPoint->GetPosition();
                     std::stringstream ss;
                     ss << "POST_CONTAINER_PLANE | Event " << eventID
                        << " | PHOTON -z (backscatter)"
                        << " | trackID=" << trackID
                        << " | E=" << kineticEnergy/keV << " keV"
-                       << " | z=" << pos.z()/mm << " mm";
+                       << " | z=" << posPost.z()/mm << " mm";
                     Logger::GetInstance()->LogLine(ss.str());
                 }
             }
@@ -394,109 +374,31 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
         // --- ÉLECTRONS ---
         if (particleName == "e-") {
             if (pz > 0) {
-                // Électrons vers l'eau (+z)
+                // Électrons vers la sortie (+z)
                 fEventAction->AddPostContainerElectronFwd(kineticEnergy);
                 
                 if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4ThreeVector pos = postStepPoint->GetPosition();
+                    G4ThreeVector posPost = postStepPoint->GetPosition();
                     std::stringstream ss;
                     ss << "POST_CONTAINER_PLANE | Event " << eventID
                        << " | ELECTRON +z"
                        << " | trackID=" << trackID
                        << " | E=" << kineticEnergy/keV << " keV"
-                       << " | z=" << pos.z()/mm << " mm";
+                       << " | z=" << posPost.z()/mm << " mm";
                     Logger::GetInstance()->LogLine(ss.str());
                 }
             } else {
-                // Électrons depuis l'eau (-z)
+                // Électrons depuis la sortie (-z)
                 fEventAction->AddPostContainerElectronBack(kineticEnergy);
                 
                 if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4ThreeVector pos = postStepPoint->GetPosition();
+                    G4ThreeVector posPost = postStepPoint->GetPosition();
                     std::stringstream ss;
                     ss << "POST_CONTAINER_PLANE | Event " << eventID
                        << " | ELECTRON -z (backscatter)"
                        << " | trackID=" << trackID
                        << " | E=" << kineticEnergy/keV << " keV"
-                       << " | z=" << pos.z()/mm << " mm";
-                    Logger::GetInstance()->LogLine(ss.str());
-                }
-            }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // DÉTECTION AU PLAN UPSTREAM
-    // ═══════════════════════════════════════════════════════════════
-
-    if (postVolumeName == "UpstreamDetector" && preVolumeName != "UpstreamDetector") {
-
-        if (pz > 0) {
-            if (parentID == 0 && particleName == "gamma") {
-                fEventAction->RecordPrimaryUpstream(trackID, kineticEnergy);
-
-                if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4int lineIdx = fEventAction->GetGammaLineForTrack(trackID);
-                    std::stringstream ss;
-                    ss << "UPSTREAM | Event " << eventID
-                       << " | PRIMARY gamma trackID=" << trackID
-                       << " | E=" << kineticEnergy/keV << " keV";
-                    if (lineIdx >= 0) {
-                        ss << " | [" << EventAction::GetGammaLineName(lineIdx) << "]";
-                    }
-                    Logger::GetInstance()->LogLine(ss.str());
-                }
-            }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // DÉTECTION AU PLAN DOWNSTREAM
-    // ═══════════════════════════════════════════════════════════════
-
-    if (postVolumeName == "DownstreamDetector" && preVolumeName != "DownstreamDetector") {
-
-        if (pz > 0) {
-            if (parentID == 0 && particleName == "gamma") {
-                fEventAction->RecordPrimaryDownstream(trackID, kineticEnergy);
-
-                if (fVerbose && eventID < fVerboseMaxEvents) {
-                    G4int lineIdx = fEventAction->GetGammaLineForTrack(trackID);
-                    std::stringstream ss;
-                    ss << "DOWNSTREAM | Event " << eventID
-                       << " | PRIMARY gamma trackID=" << trackID
-                       << " | E=" << kineticEnergy/keV << " keV";
-                    if (lineIdx >= 0) {
-                        ss << " | [" << EventAction::GetGammaLineName(lineIdx) << "]";
-                    }
-                    Logger::GetInstance()->LogLine(ss.str());
-                }
-
-            } else {
-                G4String processName = "Unknown";
-                const G4VProcess* creatorProcess = track->GetCreatorProcess();
-                if (creatorProcess) {
-                    processName = creatorProcess->GetProcessName();
-                }
-
-                G4int pdgCode = track->GetDefinition()->GetPDGEncoding();
-
-                fEventAction->RecordSecondaryDownstream(
-                    trackID,
-                    parentID,
-                    pdgCode,
-                    kineticEnergy,
-                    processName
-                );
-
-                if (fVerbose && eventID < fVerboseMaxEvents) {
-                    std::stringstream ss;
-                    ss << "DOWNSTREAM | Event " << eventID
-                       << " | SECONDARY " << particleName
-                       << " | trackID=" << trackID
-                       << " | parentID=" << parentID
-                       << " | E=" << kineticEnergy/keV << " keV"
-                       << " | process=" << processName;
+                       << " | z=" << posPost.z()/mm << " mm";
                     Logger::GetInstance()->LogLine(ss.str());
                 }
             }

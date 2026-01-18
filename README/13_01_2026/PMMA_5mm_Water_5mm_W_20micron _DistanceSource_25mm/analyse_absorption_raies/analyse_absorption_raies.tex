@@ -1,0 +1,261 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{multirow}
+
+\geometry{margin=2.5cm}
+
+\sisetup{
+    scientific-notation = true,
+    round-mode = figures,
+    round-precision = 3,
+    exponent-product = \times
+}
+
+\title{\textbf{Analyse du taux d'absorption dans l'eau\\par raie gamma Eu-152}\\[0.5cm]
+\large Figures générées par \texttt{analyse\_absorption\_raies.C}\\
+Simulation Monte Carlo Geant4}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================================
+\section{Introduction}
+% ============================================================================
+
+Le script \texttt{analyse\_absorption\_raies.C} analyse le taux d'absorption des photons gamma de l'Eu-152 dans le volume d'eau (5 mm d'épaisseur). Il génère deux figures principales :
+
+\begin{enumerate}
+    \item \textbf{absorption\_par\_raie.png} : Histogramme en barres du taux d'absorption pour chaque raie gamma
+    \item \textbf{absorption\_vs\_energie.png} : Graphe du taux d'absorption en fonction de l'énergie du photon
+\end{enumerate}
+
+Ces figures permettent de comprendre la dépendance en énergie de l'absorption des photons dans l'eau et d'identifier les raies qui contribuent le plus au dépôt de dose.
+
+% ============================================================================
+\section{Figure 1 : Taux d'absorption par raie gamma}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente un histogramme en barres montrant le taux d'absorption dans l'eau (en \%) pour chacune des 13 raies gamma de l'Eu-152. L'axe Y est en échelle logarithmique pour visualiser les valeurs sur plusieurs ordres de grandeur.
+
+\subsection{Données observées}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{clcc}
+\toprule
+\textbf{Index} & \textbf{Raie gamma} & \textbf{Énergie (keV)} & \textbf{Taux d'absorption (\%)} \\
+\midrule
+\rowcolor{blue!20} 0 & 40 keV (X) & 39.5 & \textbf{2.72} \\
+\rowcolor{blue!20} 1 & 40 keV (X) & 40.1 & \textbf{2.58} \\
+2 & 122 keV & 121.8 & 0.08 \\
+3 & 245 keV & 244.7 & 0.01 \\
+4 & 344 keV & 344.3 & $<$0.01 \\
+5 & 411 keV & 411.1 & $<$0.01 \\
+6 & 444 keV & 444.0 & $<$0.01 \\
+7 & 779 keV & 778.9 & $<$0.01 \\
+8 & 867 keV & 867.4 & $<$0.01 \\
+9 & 964 keV & 964.1 & $<$0.01 \\
+10 & 1086 keV & 1085.9 & $<$0.01 \\
+11 & 1112 keV & 1112.1 & $<$0.01 \\
+12 & 1408 keV & 1408.0 & $<$0.01 \\
+\bottomrule
+\end{tabular}
+\caption{Taux d'absorption dans l'eau par raie gamma Eu-152. Les raies X sont surlignées.}
+\end{table}
+
+\subsection{Analyse}
+
+\begin{itemize}
+    \item \textbf{Dominance des raies X} : Les deux raies X à $\sim$40 keV dominent très largement l'absorption avec des taux de \textbf{2.72\%} et \textbf{2.58\%}. Ces raies représentent plus de \textbf{98\%} de l'absorption totale dans l'eau.
+    
+    \item \textbf{Décroissance rapide} : Le taux d'absorption décroît rapidement avec l'énergie :
+    \begin{itemize}
+        \item 40 keV : $\sim$2.7\%
+        \item 122 keV : 0.08\% (facteur 34 de réduction)
+        \item 245 keV : 0.01\% (facteur 270)
+        \item $>$344 keV : $<$0.01\% (facteur $>$270)
+    \end{itemize}
+    
+    \item \textbf{Raies de haute énergie} : Les raies au-delà de 300 keV ont des taux d'absorption inférieurs à 0.01\%, ce qui signifie que moins d'un photon sur 10\,000 est absorbé dans les 5 mm d'eau.
+    
+    \item \textbf{Anomalie à 1408 keV} : On observe une légère remontée du taux d'absorption pour la raie à 1408 keV. Ceci pourrait être dû à une contribution de la création de paires (seuil à 1022 keV) ou à un effet statistique.
+\end{itemize}
+
+% ============================================================================
+\section{Figure 2 : Taux d'absorption vs énergie gamma}
+% ============================================================================
+
+\subsection{Description}
+
+Cette figure présente un graphe en échelle log-log montrant l'évolution du taux d'absorption en fonction de l'énergie du photon gamma. Chaque point représente une raie de l'Eu-152.
+
+\subsection{Observations}
+
+Le graphe montre clairement trois régimes :
+
+\begin{enumerate}
+    \item \textbf{Basse énergie (40-100 keV)} : Décroissance très rapide, dominée par l'effet photoélectrique
+    \item \textbf{Énergie intermédiaire (100-800 keV)} : Décroissance plus lente, transition vers le régime Compton
+    \item \textbf{Haute énergie ($>$800 keV)} : Plateau avec légère remontée, contribution possible de la création de paires
+\end{enumerate}
+
+\subsection{Analyse physique}
+
+\subsubsection{Loi de variation avec l'énergie}
+
+Le coefficient d'atténuation massique de l'eau suit approximativement :
+
+\begin{equation}
+\frac{\mu}{\rho} = \frac{\mu_{pe}}{\rho} + \frac{\mu_C}{\rho} + \frac{\mu_{pp}}{\rho}
+\end{equation}
+
+où les trois termes correspondent à l'effet photoélectrique, la diffusion Compton et la création de paires.
+
+\paragraph{Effet photoélectrique :}
+\begin{equation}
+\frac{\mu_{pe}}{\rho} \propto \frac{Z^{4-5}}{E^{3-3.5}}
+\end{equation}
+
+Cette dépendance en $E^{-3}$ explique la chute rapide du taux d'absorption à basse énergie.
+
+\paragraph{Diffusion Compton :}
+\begin{equation}
+\frac{\mu_C}{\rho} \propto \frac{Z}{E}
+\end{equation}
+
+La dépendance plus faible en $E^{-1}$ explique le ralentissement de la décroissance aux énergies intermédiaires.
+
+\paragraph{Création de paires :}
+\begin{equation}
+\frac{\mu_{pp}}{\rho} \propto Z^2 \ln(E) \quad \text{pour } E > 1.022 \text{ MeV}
+\end{equation}
+
+Ce processus devient non négligeable au-delà de 1 MeV et peut expliquer la légère remontée à 1408 keV.
+
+\subsubsection{Comparaison avec les données tabulées}
+
+Pour une épaisseur d'eau de 5 mm, le taux d'absorption théorique est :
+\begin{equation}
+A = 1 - e^{-\mu x}
+\end{equation}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccc}
+\toprule
+\textbf{Énergie (keV)} & \textbf{$\mu$ (cm$^{-1}$)} & \textbf{$A$ théorique (\%)} & \textbf{$A$ simulé (\%)} \\
+\midrule
+40 & 0.268 & 1.33 & 2.65$^*$ \\
+122 & 0.161 & 0.80 & 0.08 \\
+344 & 0.117 & 0.58 & $<$0.01 \\
+1408 & 0.061 & 0.30 & $<$0.01 \\
+\bottomrule
+\end{tabular}
+\caption{Comparaison des taux d'absorption théoriques et simulés. $^*$Le taux simulé plus élevé à 40 keV inclut l'absorption totale (photoélectrique).}
+\end{table}
+
+\textbf{Note importante} : Les taux simulés représentent l'absorption \textit{totale} (photon complètement absorbé), tandis que les valeurs théoriques incluent aussi la diffusion Compton. La différence importante pour les hautes énergies s'explique par le fait que la majorité des interactions Compton ne conduisent pas à une absorption complète du photon.
+
+% ============================================================================
+\section{Implications dosimétriques}
+% ============================================================================
+
+\subsection{Contribution à la dose par raie}
+
+La contribution de chaque raie à la dose dépend de :
+\begin{enumerate}
+    \item Son intensité d'émission (nombre de photons émis)
+    \item Son taux d'absorption dans l'eau
+    \item Son énergie (énergie déposée par absorption)
+\end{enumerate}
+
+\begin{equation}
+D_i \propto N_i \times A_i \times E_i
+\end{equation}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Raie} & \textbf{$N$ émis} & \textbf{$A$ (\%)} & \textbf{$E$ (keV)} & \textbf{$N \times A$} & \textbf{Contribution} \\
+\midrule
+\rowcolor{yellow!30} 40 keV (X) & \num{1.46e7} & 2.65 & 40 & \num{3.87e5} & \textbf{Dominante} \\
+122 keV & \num{7.1e6} & 0.08 & 122 & \num{5680} & Faible \\
+344 keV & \num{6.65e6} & $<$0.01 & 344 & $<$665 & Négligeable \\
+1408 keV & \num{5.25e6} & $<$0.01 & 1408 & $<$525 & Négligeable \\
+\bottomrule
+\end{tabular}
+\caption{Contribution estimée de chaque raie à la dose absorbée.}
+\end{table}
+
+\subsection{Conclusions pour l'optimisation}
+
+\begin{itemize}
+    \item \textbf{Les raies X à 40 keV} sont responsables de la quasi-totalité de la dose absorbée dans l'eau. Pour augmenter le débit de dose, il faudrait :
+    \begin{itemize}
+        \item Maximiser le flux de ces raies (pas de filtre ou filtre à faible Z)
+        \item Utiliser un milieu avec un Z plus élevé (meilleure absorption photoélectrique)
+    \end{itemize}
+    
+    \item \textbf{Les raies de haute énergie} ($>$300 keV) traversent l'eau presque sans interaction. Elles ne contribuent pas significativement à la dose dans les 5 mm d'eau mais pourraient être utilisées pour :
+    \begin{itemize}
+        \item La détection externe (monitoring)
+        \item L'irradiation de volumes plus épais
+    \end{itemize}
+    
+    \item \textbf{Un filtre de haut Z} (comme le tungstène) atténuerait préférentiellement les raies de basse énergie, réduisant fortement le débit de dose mais améliorant la pénétration du rayonnement.
+\end{itemize}
+
+% ============================================================================
+\section{Synthèse}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{ll}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur} \\
+\midrule
+Raies dominantes pour l'absorption & 40 keV (X) \\
+Taux d'absorption maximal & 2.72\% (raie 39.5 keV) \\
+Contribution des raies X à l'absorption totale & $>$98\% \\
+Taux d'absorption des raies $>$300 keV & $<$0.01\% \\
+Processus dominant à 40 keV & Effet photoélectrique \\
+Processus dominant $>$200 keV & Diffusion Compton \\
+\bottomrule
+\end{tabular}
+\caption{Synthèse des résultats de l'analyse d'absorption.}
+\end{table}
+
+\subsection{Points clés}
+
+\begin{enumerate}
+    \item Le taux d'absorption dans l'eau varie sur \textbf{3 ordres de grandeur} entre 40 keV (2.7\%) et 1 MeV ($<$0.01\%).
+    
+    \item La \textbf{décroissance} suit approximativement une loi en $E^{-3}$ à basse énergie (photoélectrique) puis en $E^{-1}$ à haute énergie (Compton).
+    
+    \item Pour la dosimétrie avec l'Eu-152, les \textbf{raies X à 40 keV} sont les plus importantes malgré leur faible énergie individuelle, car leur taux d'absorption est 100 à 1000 fois supérieur à celui des autres raies.
+    
+    \item L'épaisseur d'eau de \textbf{5 mm} est bien adaptée à l'absorption des raies X (absorption significative) mais trop faible pour absorber efficacement les raies de haute énergie.
+\end{enumerate}
+
+\end{document}
